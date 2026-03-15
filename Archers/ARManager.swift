@@ -392,7 +392,7 @@ extension ARManager {
       return nil
     }
     
-    let elbowScore = scoreFor(value: elbowAngle, ideal: 180.0, tolerance: 40)
+    let elbowScore = scoreFor(value: elbowAngle, ideal: 180.0, tolerance: 5)
     
     let heightDiff = abs(lw.y - ls.y)
     let heightScore = scoreFor (value: heightDiff, ideal: 0, tolerance: 0.15)
