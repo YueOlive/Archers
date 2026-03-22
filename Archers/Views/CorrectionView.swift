@@ -8,7 +8,7 @@ import SwiftUI
 
 struct CorrectionView: View {
   @Binding var appStage: AppStage
-  let arManager = ARManager ()
+  let arManager: ARManager
   
   var body: some View {
     GeometryReader { proxy in
@@ -198,6 +198,12 @@ struct CorrectionView: View {
         }
         //end of ZStack
       }
+    }
+    .onAppear {
+      arManager.attachSessionClient()
+    }
+    .onDisappear {
+      arManager.detachSessionClient()
     }
   }
 }

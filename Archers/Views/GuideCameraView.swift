@@ -8,7 +8,7 @@ import SwiftUI
 
 struct GuideCameraView: View {
   @Binding var appStage: AppStage
-  var arManager = ARManager()
+  let arManager: ARManager
   
   var body: some View {
     VStack {
@@ -71,8 +71,14 @@ struct GuideCameraView: View {
         .resizable()
         .scaledToFill()
         .ignoresSafeArea()
-      
+       
     )
+    .onAppear {
+      arManager.attachSessionClient()
+    }
+    .onDisappear {
+      arManager.detachSessionClient()
+    }
   }
 }
 

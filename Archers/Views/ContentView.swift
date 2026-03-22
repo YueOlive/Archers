@@ -19,6 +19,7 @@ enum AppStage {
 
 struct ContentView: View {
   @State var appStage = AppStage.correction
+  @State private var arManager = ARManager()
   
   
   var body: some View {
@@ -35,13 +36,13 @@ struct ContentView: View {
       GuideBreakView(appStage: $appStage).transition(.move(edge: .trailing))
     }
     else if appStage == .cameraAccess{
-      GuideCameraView(appStage: $appStage).transition(.move(edge: .trailing))
+      GuideCameraView(appStage: $appStage, arManager: arManager).transition(.move(edge: .trailing))
     }
     else if appStage == .watchAccess{
       GuideWatchView(appStage: $appStage).transition(.move(edge: .trailing))
     }
     else if appStage == .correction{
-      CorrectionView(appStage: $appStage)
+      CorrectionView(appStage: $appStage, arManager: arManager)
     }
   }
 }

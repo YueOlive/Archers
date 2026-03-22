@@ -13,6 +13,8 @@ import Observation
 @Observable
 class ARManager: NSObject, ARSessionDelegate{
   let session = ARSession()
+  @ObservationIgnored private var isSessionRunning = false
+  @ObservationIgnored private var sessionClientCount = 0
 
   var previewImage: UIImage? = nil
   var shoulderPoints: (left: CGPoint, right: CGPoint)?
@@ -44,13 +46,43 @@ class ARManager: NSObject, ARSessionDelegate{
   override init() {
     super.init()
     session.delegate = self
-    startSession()
+  }
+  
+  deinit {
+    stopSession()
   }
 
   func startSession() {
+    guard !isSessionRunning else { return }
+    guard ARFaceTrackingConfiguration.isSupported else {
+      print("ARFaceTrackingConfiguration is not supported on this device.")
+      return
+    }
+
     let configuration = ARFaceTrackingConfiguration()
     configuration.isLightEstimationEnabled = true
     session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+    isSessionRunning = true
+  }
+  
+  func stopSession() {
+    guard isSessionRunning else { return }
+    session.pause()
+    isSessionRunning = false
+  }
+  
+  func attachSessionClient() {
+    sessionClientCount += 1
+    if sessionClientCount == 1 {
+      startSession()
+    }
+  }
+  
+  func detachSessionClient() {
+    sessionClientCount = max(0, sessionClientCount - 1)
+    if sessionClientCount == 0 {
+      stopSession()
+    }
   }
 
   func session(_ session: ARSession, didUpdate anchors: [ARAnchor]){
@@ -204,7 +236,7 @@ extension ARManager {
       cvPixelBuffer: pixelBuffer, orientation: exif, options: [:]
     )
     
-    DispatchQueue.global(qos: .userInitiated).async{
+    visionQueue.async {
       do{
         try handler.perform([request])
         guard let result = request.results?.first else { return }
@@ -470,5 +502,3 @@ extension ARManager{
     return deg
   }
 }
-
-
