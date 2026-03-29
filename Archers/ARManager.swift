@@ -12,6 +12,43 @@ import Observation
 
 @Observable
 class ARManager: NSObject, ARSessionDelegate{
+  private actor VisionCoordinator {
+    private var currentVisionTask: Task<Void, Never>?
+    private var nextFrameID: UInt64 = 0
+    private var latestAppliedFrameID: UInt64 = 0
+    
+    func reserveFrameIDAndCancelCurrentTask() -> UInt64 {
+      currentVisionTask?.cancel()
+      nextFrameID += 1
+      return nextFrameID
+    }
+    
+    func setCurrentVisionTask(_ task: Task<Void, Never>, for frameID: UInt64) {
+      guard frameID == nextFrameID else {
+        task.cancel()
+        return
+      }
+      currentVisionTask = task
+    }
+    
+    func shouldApply(frameID: UInt64) -> Bool {
+      guard frameID > latestAppliedFrameID else { return false }
+      latestAppliedFrameID = frameID
+      return true
+    }
+    
+    func markHandled(frameID: UInt64) {
+      if frameID > latestAppliedFrameID {
+        latestAppliedFrameID = frameID
+      }
+    }
+    
+    func cancelCurrentTask() {
+      currentVisionTask?.cancel()
+      currentVisionTask = nil
+    }
+  }
+  
   let session = ARSession()
   @ObservationIgnored private var isSessionRunning = false
   @ObservationIgnored private var sessionClientCount = 0
@@ -39,9 +76,7 @@ class ARManager: NSObject, ARSessionDelegate{
   
   var estimatedDistance: CGFloat? = nil
   var mirrorFrontPreview: Bool = false
-  @ObservationIgnored private var visionTask: Task<Void, Never>? = nil
-  @ObservationIgnored private var nextPoseFrameID: UInt64 = 0
-  @ObservationIgnored private var latestAppliedPoseFrameID: UInt64 = 0
+  @ObservationIgnored private let visionCoordinator = VisionCoordinator()
   
   var onBodyPositionUpdate: (CGFloat) -> Void = { _ in }
 
@@ -51,7 +86,10 @@ class ARManager: NSObject, ARSessionDelegate{
   }
   
   deinit {
-    visionTask?.cancel()
+    let coordinator = visionCoordinator
+    Task {
+      await coordinator.cancelCurrentTask()
+    }
     stopSession()
   }
 
@@ -245,43 +283,43 @@ extension ARManager {
     let io = currentInterfaceOrientation() // Portrait or Landscape
     let camPos = cameraPosition(from: session.configuration) // Front or back
     let pixelBuffer = frame.capturedImage
-    let frameID = reservePoseFrameID()
     
     // --- Vision with matching EXIF orientation (must mirror consistently) ---
     let exif = mappedCGImageOrientation(io, camPos, mirrorFront: mirrorFrontPreview)
     
-    visionTask?.cancel()
-    visionTask = Task(priority: .userInitiated) { [weak self] in
+    Task(priority: .userInitiated) { [weak self] in
       guard let self else { return }
-      do {
-        let request = VNDetectHumanBodyPoseRequest()
-        let handler = VNImageRequestHandler(
-          cvPixelBuffer: pixelBuffer, orientation: exif, options: [:]
-        )
-        try handler.perform([request])
-        try Task.checkCancellation()
-        
-        guard let result = request.results?.first else {
-          await self.markPoseFrameHandled(frameID)
-          return
+      let frameID = await self.visionCoordinator.reserveFrameIDAndCancelCurrentTask()
+      
+      let visionTask = Task(priority: .userInitiated) { [weak self] in
+        guard let self else { return }
+        do {
+          let request = VNDetectHumanBodyPoseRequest()
+          let handler = VNImageRequestHandler(
+            cvPixelBuffer: pixelBuffer, orientation: exif, options: [:]
+          )
+          try handler.perform([request])
+          try Task.checkCancellation()
+          
+          guard let result = request.results?.first else {
+            await self.markPoseFrameHandled(frameID)
+            return
+          }
+          
+          let recognizedPoints = try result.recognizedPoints(.all)
+          let posePoints = self.extractPosePoints(from: recognizedPoints)
+          try Task.checkCancellation()
+          
+          await self.applyPosePoints(posePoints, frameID: frameID)
+        } catch is CancellationError {
+          // ignore stale canceled task
+        } catch {
+          print("Vision Error: \(error.localizedDescription).")
         }
-        
-        let recognizedPoints = try result.recognizedPoints(.all)
-        let posePoints = self.extractPosePoints(from: recognizedPoints)
-        try Task.checkCancellation()
-        
-        await self.applyPosePoints(posePoints, frameID: frameID)
-      } catch is CancellationError {
-        // ignore stale canceled task
-      } catch {
-        print("Vision Error: \(error.localizedDescription).")
       }
+      
+      await self.visionCoordinator.setCurrentVisionTask(visionTask, for: frameID)
     }
-  }
-  
-  private func reservePoseFrameID() -> UInt64 {
-    nextPoseFrameID += 1
-    return nextPoseFrameID
   }
   
   private func point(
@@ -312,17 +350,13 @@ extension ARManager {
     )
   }
   
-  @MainActor
-  private func markPoseFrameHandled(_ frameID: UInt64) {
-    if frameID > latestAppliedPoseFrameID {
-      latestAppliedPoseFrameID = frameID
-    }
+  private func markPoseFrameHandled(_ frameID: UInt64) async {
+    await visionCoordinator.markHandled(frameID: frameID)
   }
   
   @MainActor
-  private func applyPosePoints(_ posePoints: PosePoints, frameID: UInt64) {
-    guard frameID > latestAppliedPoseFrameID else { return }
-    latestAppliedPoseFrameID = frameID
+  private func applyPosePoints(_ posePoints: PosePoints, frameID: UInt64) async {
+    guard await visionCoordinator.shouldApply(frameID: frameID) else { return }
     
     shoulderPoints = posePoints.shoulderPoints
     leftWristPoint = posePoints.leftWristPoint
