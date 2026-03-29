@@ -39,7 +39,9 @@ class ARManager: NSObject, ARSessionDelegate{
   
   var estimatedDistance: CGFloat? = nil
   var mirrorFrontPreview: Bool = false
-  @ObservationIgnored  private let visionQueue = DispatchQueue(label: "vision.pose.queue")
+  @ObservationIgnored private var visionTask: Task<Void, Never>? = nil
+  @ObservationIgnored private var nextPoseFrameID: UInt64 = 0
+  @ObservationIgnored private var latestAppliedPoseFrameID: UInt64 = 0
   
   var onBodyPositionUpdate: (CGFloat) -> Void = { _ in }
 
@@ -49,6 +51,7 @@ class ARManager: NSObject, ARSessionDelegate{
   }
   
   deinit {
+    visionTask?.cancel()
     stopSession()
   }
 
@@ -182,6 +185,18 @@ class ARManager: NSObject, ARSessionDelegate{
 }
 
 extension ARManager {
+  private struct PosePoints {
+    var shoulderPoints: (left: CGPoint, right: CGPoint)?
+    var leftWristPoint: CGPoint?
+    var leftElbowPoint: CGPoint?
+    var rightWristPoint: CGPoint?
+    var rightElbowPoint: CGPoint?
+    var neckPoint: CGPoint?
+    var leftAnklePoint: CGPoint?
+    var rightAnklePoint: CGPoint?
+    var rootPoint: CGPoint?
+  }
+  
   func detectHumanBody(session: ARSession, anchors: [ARAnchor]) {
     let faces = anchors.compactMap { $0 as? ARFaceAnchor }
     
@@ -216,7 +231,9 @@ extension ARManager {
       interfaceOrientation: io,
       cameraPosition: camPos,
       mirrorFront: mirrorFrontPreview) {
-      self.previewImage = uiImage
+      Task { @MainActor in
+        self.previewImage = uiImage
+      }
     }
   }
   
@@ -228,120 +245,99 @@ extension ARManager {
     let io = currentInterfaceOrientation() // Portrait or Landscape
     let camPos = cameraPosition(from: session.configuration) // Front or back
     let pixelBuffer = frame.capturedImage
+    let frameID = reservePoseFrameID()
     
     // --- Vision with matching EXIF orientation (must mirror consistently) ---
     let exif = mappedCGImageOrientation(io, camPos, mirrorFront: mirrorFrontPreview)
-    let request = VNDetectHumanBodyPoseRequest()
-    let handler = VNImageRequestHandler(
-      cvPixelBuffer: pixelBuffer, orientation: exif, options: [:]
-    )
     
-    visionQueue.async {
-      do{
+    visionTask?.cancel()
+    visionTask = Task(priority: .userInitiated) { [weak self] in
+      guard let self else { return }
+      do {
+        let request = VNDetectHumanBodyPoseRequest()
+        let handler = VNImageRequestHandler(
+          cvPixelBuffer: pixelBuffer, orientation: exif, options: [:]
+        )
         try handler.perform([request])
-        guard let result = request.results?.first else { return }
+        try Task.checkCancellation()
+        
+        guard let result = request.results?.first else {
+          await self.markPoseFrameHandled(frameID)
+          return
+        }
         
         let recognizedPoints = try result.recognizedPoints(.all)
+        let posePoints = self.extractPosePoints(from: recognizedPoints)
+        try Task.checkCancellation()
         
-        self.extractShoulderPositions(from: recognizedPoints)
-        self.extractLeftArmPositions(from: recognizedPoints)
-        self.extractRightArmPositions(from: recognizedPoints)
-        self.extractNeckPositions(from: recognizedPoints)
-        self.extractLeftLegPositions(from: recognizedPoints)
-        self.extractRightLegPositions(from: recognizedPoints)
-        self.extractRootPositions(from: recognizedPoints)
-        self.calcScore()
-      }catch{
+        await self.applyPosePoints(posePoints, frameID: frameID)
+      } catch is CancellationError {
+        // ignore stale canceled task
+      } catch {
         print("Vision Error: \(error.localizedDescription).")
       }
     }
   }
   
-  func extractShoulderPositions(from points: JointRecords) {
-    guard let l = points[.leftShoulder],
-          let r = points[.rightShoulder],
-          l.confidence >= 0.3,
-          r.confidence >= 0.3 else { return }
+  private func reservePoseFrameID() -> UInt64 {
+    nextPoseFrameID += 1
+    return nextPoseFrameID
+  }
+  
+  private func point(
+    from points: JointRecords,
+    joint: VNHumanBodyPoseObservation.JointName
+  ) -> CGPoint? {
+    guard let p = points[joint], p.confidence >= 0.3 else { return nil }
+    return CGPoint(x: p.x, y: 1 - p.y)
+  }
+  
+  private func extractPosePoints(from points: JointRecords) -> PosePoints {
+    let leftShoulder = point(from: points, joint: .rightShoulder)
+    let rightShoulder = point(from: points, joint: .leftShoulder)
     
-    Task { @MainActor in
-      let leftPoint = CGPoint(x: r.x, y: 1 - r.y)
-      let rightPoint = CGPoint(x: l.x, y: 1 - l.y)
-      
-      self.shoulderPoints = (leftPoint, rightPoint)
+    return PosePoints(
+      shoulderPoints: {
+        guard let leftShoulder, let rightShoulder else { return nil }
+        return (left: leftShoulder, right: rightShoulder)
+      }(),
+      leftWristPoint: point(from: points, joint: .rightWrist),
+      leftElbowPoint: point(from: points, joint: .rightElbow),
+      rightWristPoint: point(from: points, joint: .leftWrist),
+      rightElbowPoint: point(from: points, joint: .leftElbow),
+      neckPoint: point(from: points, joint: .neck),
+      leftAnklePoint: point(from: points, joint: .rightAnkle),
+      rightAnklePoint: point(from: points, joint: .leftAnkle),
+      rootPoint: point(from: points, joint: .root)
+    )
+  }
+  
+  @MainActor
+  private func markPoseFrameHandled(_ frameID: UInt64) {
+    if frameID > latestAppliedPoseFrameID {
+      latestAppliedPoseFrameID = frameID
     }
   }
   
-  func extractLeftArmPositions(from points: JointRecords) {
-    guard let leftWrist = points[.rightWrist],
-          let leftElbow = points[.rightElbow],
-          leftWrist.confidence >= 0.3,
-          leftElbow.confidence >= 0.3 else { return }
+  @MainActor
+  private func applyPosePoints(_ posePoints: PosePoints, frameID: UInt64) {
+    guard frameID > latestAppliedPoseFrameID else { return }
+    latestAppliedPoseFrameID = frameID
     
-    Task { @MainActor in
-      let leftWrist = CGPoint(x: leftWrist.x, y: 1 - leftWrist.y)
-      let leftElbow = CGPoint(x: leftElbow.x, y: 1 - leftElbow.y)
-      
-      self.leftWristPoint = leftWrist
-      self.leftElbowPoint = leftElbow
-    }
-  }
-  
-  func extractRightArmPositions(from points: JointRecords) {
-    guard let rightWrist = points[.leftWrist],
-          let rightElbow = points[.leftElbow],
-          rightWrist.confidence >= 0.3,
-          rightElbow.confidence >= 0.3 else { return }
+    shoulderPoints = posePoints.shoulderPoints
+    leftWristPoint = posePoints.leftWristPoint
+    leftElbowPoint = posePoints.leftElbowPoint
+    rightWristPoint = posePoints.rightWristPoint
+    rightElbowPoint = posePoints.rightElbowPoint
+    neckPoint = posePoints.neckPoint
+    leftAnklePoint = posePoints.leftAnklePoint
+    rightAnklePoint = posePoints.rightAnklePoint
+    rootPoint = posePoints.rootPoint
     
-    Task { @MainActor in
-      let rightWrist = CGPoint(x: rightWrist.x, y: 1 - rightWrist.y)
-      let rightElbow = CGPoint(x: rightElbow.x, y: 1 - rightElbow.y)
-      
-      self.rightWristPoint = rightWrist
-      self.rightElbowPoint = rightElbow
-    }
-  }
-  
-  func extractNeckPositions(from points: JointRecords) {
-    guard let neck = points[.neck],
-          neck.confidence >= 0.3 else { return }
+    calcScore()
     
-    Task { @MainActor in
-      let neck = CGPoint(x: neck.x, y: 1 - neck.y)
-      
-      self.neckPoint = neck
-    }
-  }
-  
-  func extractLeftLegPositions(from points: JointRecords) {
-    guard let leftAnkle = points[.rightAnkle],
-          leftAnkle.confidence >= 0.3 else { return }
-    
-    Task { @MainActor in
-      let leftAnkle = CGPoint(x: leftAnkle.x, y: 1 - leftAnkle.y)
-      
-      self.leftAnklePoint = leftAnkle
-    }
-  }
-  
-  func extractRightLegPositions(from points: JointRecords) {
-    guard let rightAnkle = points[.leftAnkle],
-          rightAnkle.confidence >= 0.3 else { return }
-    
-    Task { @MainActor in
-      let rightAnkle = CGPoint(x: rightAnkle.x, y: 1 - rightAnkle.y)
-      
-      self.rightAnklePoint = rightAnkle
-    }
-  }
-  
-  func extractRootPositions(from points: JointRecords) {
-    guard let root = points[.root],
-          root.confidence >= 0.3 else { return }
-    
-    Task { @MainActor in
-      let root = CGPoint(x: root.x, y: 1 - root.y)
-      
-      self.rootPoint = root
+    if let distance = estimatedDistance {
+      onBodyPositionUpdate(distance)
     }
   }
 }
