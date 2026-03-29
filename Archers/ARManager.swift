@@ -348,36 +348,39 @@ extension ARManager {
 
 extension ARManager {
   func calcScore() {
-    var weight: CGFloat = 0
+    var frameWeight: CGFloat = 0
+    var frameTotal: CGFloat = 0
     
     // evaluate LM
     if let leftArmScore = evaluateLeftArm(){
       laScore = leftArmScore
-      totalScore += (leftArmScore * 0.4)
-      weight += 0.4
+      frameTotal += (leftArmScore * 0.4)
+      frameWeight += 0.4
     }
     // evaluate RM
     if let rightArmScore = elvaluateRightArm(){
       raScore = rightArmScore
-      totalScore += (rightArmScore * 0.4)
-      weight += 0.4
+      frameTotal += (rightArmScore * 0.4)
+      frameWeight += 0.4
     }
     // evaluate B
     if let bodyScore = evaluateBody(){
       bScore = bodyScore
-      totalScore += (bodyScore * 0.11)
-      weight += 0.11
+      frameTotal += (bodyScore * 0.11)
+      frameWeight += 0.11
     }
     
     // evaluate leg
     if let legScore = evaluateLegs() {
       self.legScore = legScore
-      self.totalScore += (legScore * 0.09)
-      weight += 0.09
+      frameTotal += (legScore * 0.09)
+      frameWeight += 0.09
     }
     
-    if weight > 0 {
-      totalScore /= weight
+    if frameWeight > 0 {
+      totalScore = frameTotal / frameWeight
+    } else {
+      totalScore = 0
     }
   }
   

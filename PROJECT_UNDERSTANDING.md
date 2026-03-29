@@ -2,161 +2,193 @@
 
 ## High-level summary
 
-Archers is an iOS SwiftUI app focused on **archery posture correction** using a live camera feed.
-It combines:
+Archers is a SwiftUI-based iOS app for archery posture guidance using:
 
-- `ARKit` (face tracking) to estimate user distance from camera.
-- `Vision` (`VNDetectHumanBodyPoseRequest`) to detect body joints.
-- A custom scoring model in `ARManager` for left arm, right arm, body alignment, and leg stance.
+- `ARKit` (`ARFaceTrackingConfiguration`) for face-based distance estimation.
+- `Vision` (`VNDetectHumanBodyPoseRequest`) for body joint detection.
+- A custom scoring pipeline in `ARManager` for arm, body, and leg posture.
 
-The repository also includes a companion watchOS target (`Archery Watch App`), but it is currently a template app and not yet integrated with the iOS posture system.
+The repo also contains a watchOS companion target (`Archery Watch App`), currently still template-level and not connected to iOS posture/session logic.
 
 ## Repository structure
 
-- `Archers/` - iOS app source.
-  - `ArchersApp.swift` - app entry point.
-  - `ARManager.swift` - camera/session/pose detection and scoring logic.
-  - `Views/` - onboarding pages + correction screen.
-  - `Resources/` - assets and custom font (`Newsreader.ttf`).
-- `Archery Watch App/` - watchOS app (basic placeholder UI).
-- `Archers.xcodeproj/` - project config with two targets:
-  - `Archers` (iOS)
-  - `Archery Watch App` (watchOS)
+- `Archers/`
+  - `ArchersApp.swift`: iOS app entry point.
+  - `ARManager.swift`: AR session lifecycle, camera preview creation, Vision pose extraction, and scoring.
+  - `Views/`: onboarding + correction UI.
+  - `Resources/`: app assets + custom font.
+  - `Info.plist`: custom font registration.
+- `Archery Watch App/`
+  - `ArcheryApp.swift`: watchOS app entry.
+  - `Views/ContentView.swift`: placeholder “Hello, world!” UI.
+- `Archers.xcodeproj/`: project and target configuration.
+- `AGENTS.md`: implementation constraints for future changes.
 
-There are no unit/UI tests and no README currently.
+## AGENTS.md implementation constraints
 
-## Project agent constraints (`AGENTS.md`)
+The project-level coding constraints are:
 
-The repository defines implementation constraints that should guide all new feature work:
+1. Use latest Swift / SwiftUI / Combine / ARKit APIs.
+2. Prefer `async`/`await` for async operations.
+3. Use Observation framework instead of `@StateObject`.
+4. Do not use Apple-obsoleted APIs.
 
-- Always use latest `Swift`, `SwiftUI`, `Combine`, and `ARKit` APIs.
-- Prefer `async`/`await` for asynchronous operations.
-- Use the Observation framework instead of `@StateObject`.
-- Do not use any API marked obsolete by Apple.
+Current code already uses Observation (`@Observable` in `ARManager`) and avoids `@StateObject`.
 
-## App flow (iOS)
+## iOS app flow and stage model
 
-`Archers/Views/ContentView.swift` contains a simple stage machine:
+`Archers/Views/ContentView.swift` defines a stage-driven flow via:
 
-1. `welcome`
-2. `guidePrivacy`
-3. `intentedUse`
-4. `takeABreak`
-5. `cameraAccess`
-6. `watchAccess`
-7. `correction`
+- `welcome`
+- `guidePrivacy`
+- `intentedUse`
+- `takeABreak`
+- `cameraAccess`
+- `watchAccess`
+- `correction`
 
-Each onboarding view receives `@Binding var appStage` and moves to the next stage with animated transition.
+The app currently launches directly into `.correction`:
 
-Current default launch stage is set to `.correction` (likely for development), so onboarding is skipped unless changed.
+```swift
+@State var appStage = AppStage.correction
+```
 
-## Core technical architecture
+Onboarding views still exist and transition forward one step at a time with `withAnimation`.
 
-### 1) `ARManager` responsibilities
+## Core architecture
 
-`Archers/ARManager.swift` is the core engine and currently combines multiple concerns:
+### 1) Session and lifecycle
 
-- Owns `ARSession` and starts `ARFaceTrackingConfiguration`.
-- Receives frame updates via `ARSessionDelegate`.
-- Builds oriented camera preview image for SwiftUI rendering.
-- Runs Vision pose detection on each frame.
-- Extracts joint points (shoulders, elbows, wrists, neck, ankles, root).
-- Computes posture sub-scores and total score.
+`ARManager` is an `@Observable` class and `ARSessionDelegate`.
 
-### 2) Camera and orientation handling
+- Owns a single `ARSession`.
+- Uses internal client reference counting:
+  - `attachSessionClient()`
+  - `detachSessionClient()`
+- Starts/stops AR session only when needed.
 
-The manager maps interface orientation + camera position + mirror mode into:
+`GuideCameraView` and `CorrectionView` both attach/detach session usage on appear/disappear.
 
-- EXIF orientation for Vision (`mappedCGImageOrientation`).
-- UIImage orientation for preview (`mappedUIImageOrientation`).
+### 2) Frame processing pipeline
 
-This is important so pose points and displayed frame stay aligned.
+On each `session(_:didUpdate:)` callback:
 
-### 3) Pose extraction model
+1. `detectHumanBody(...)`:
+   - Reads `ARFaceAnchor` tracking state.
+   - Updates `estimatedDistance` from `faceAnchor.transform.columns.3.z`.
+2. `createCameraPreview(...)`:
+   - Converts current AR frame `CVPixelBuffer` to oriented `UIImage`.
+3. `performVisionRequest(...)`:
+   - Runs `VNDetectHumanBodyPoseRequest` on a background queue.
+   - Extracts joints (shoulders, elbows, wrists, neck, ankles, root).
+   - Computes score.
 
-`VNRecognizedPoint`s are converted into normalized `CGPoint`s (0...1 space).
-Several joint mappings are intentionally swapped left/right to account for mirrored/front-camera perspective.
+### 3) Orientation and mirroring
 
-### 4) Scoring model
+`ARManager` explicitly maps interface orientation + camera position + mirror setting into:
+
+- Vision EXIF orientation (`mappedCGImageOrientation`).
+- Preview image orientation (`mappedUIImageOrientation`).
+
+This keeps Vision coordinates and rendered preview aligned for overlay drawing.
+
+### 4) Joint mapping strategy
+
+Joint extraction uses confidence threshold `>= 0.3` and normalized points converted into top-left-origin UI space (`y: 1 - y`).
+
+For front-camera/mirror alignment, several joints intentionally cross-map left/right (e.g. left arm uses Vision right wrist/elbow).
+
+## Scoring model
 
 Subscores:
 
-- Left arm (`evaluateLeftArm`) - elbow angle + wrist/shoulder height relation.
-- Right arm (`elvaluateRightArm`) - elbow angle + forearm height relation.
-- Body (`evaluateBody`) - neck/root horizontal alignment.
-- Legs (`evaluateLegs`) - ankle horizontal spread and vertical level.
+- Left arm: elbow angle + wrist/shoulder height.
+- Right arm: elbow angle + forearm vertical relationship.
+- Body: neck/root horizontal alignment.
+- Legs: ankle horizontal spread + vertical balance.
 
-Weights:
+Weights in `calcScore()`:
 
 - Left arm: `0.4`
 - Right arm: `0.4`
 - Body: `0.11`
 - Legs: `0.09`
 
-Scores are normalized to 0-100 using `scoreFor(value:ideal:tolerance:)`.
+Base scoring is from `scoreFor(value:ideal:tolerance:)` producing `0...100`.
 
-## UI state and rendering
+Current `calcScore()` behavior (fixed):
 
-### Onboarding views
+- Computes `frameTotal` and `frameWeight` as local per-frame accumulators.
+- Sets `totalScore = frameTotal / frameWeight` when at least one component exists.
+- Resets `totalScore = 0` when no score components are available.
 
-`WelcomeView`, `GuidePrivacyView`, `GuideIntentedUseView`, `GuideBreakView`, `GuideCameraView`, and `GuideWatchView` share similar structure:
+## UI implementation summary
 
-- Full-screen background image.
-- Symbol/icon + title + explanatory text.
-- Rounded CTA button to advance app stage.
+### Onboarding screens
+
+`WelcomeView`, `GuidePrivacyView`, `GuideIntentedUseView`, `GuideBreakView`, `GuideCameraView`, `GuideWatchView` share a consistent visual style:
+
+- Fullscreen `BackgroundBg` image.
+- White typography with custom `Newsreader` font.
+- Rounded “Next”/start actions.
+
+### Guide camera preview
+
+`GuideCameraView` can show live camera preview with shoulder markers and a distance label when preview data is available.
 
 ### Correction screen
 
-`Archers/Views/CorrectionView.swift`:
+`CorrectionView`:
 
-- Instantiates `ARManager` and reads observable state directly.
-- Uses `previewImage` as background.
-- Displays status messaging:
-  - Red prompt when no body is detected.
-  - Green prompt and distance panel when body is detected.
-- Draws many debug markers (colored circles) for joints and screen corners.
-- Includes helper functions for distance wording and point mapping under `scaledToFill`.
+- Uses live `previewImage` background.
+- Shows red status when no body detected, green status when body detected.
+- Shows distance feedback (`away`, `towrd`, `perfect`).
+- Draws multiple debug circles for corners and tracked joints.
+- Uses `mapPoint(screenSize:imageSize:pt:)` to place normalized pose points under `.scaledToFill`.
 
-This screen appears to be actively used for iterative debugging of pose alignment.
+## Target and build configuration snapshot
 
-## Watch app status
+From `project.pbxproj`:
 
-The watch target (`Archery Watch App`) currently has default template content (`Hello, world!`).
-No data sharing, connectivity, or command interface exists yet between iPhone and Apple Watch targets.
+- iOS target (`Archers`)
+  - `PRODUCT_BUNDLE_IDENTIFIER = archers.Archers`
+  - `IPHONEOS_DEPLOYMENT_TARGET = 18.0` (with project-level generic values also showing `18.4`)
+  - `TARGETED_DEVICE_FAMILY = "1,2"`
+  - camera/microphone usage strings configured in build settings.
+- watchOS target (`Archery Watch App`)
+  - `PRODUCT_BUNDLE_IDENTIFIER = archers.Archers.watchkitapp`
+  - `WATCHOS_DEPLOYMENT_TARGET = 8.7`
+  - `TARGETED_DEVICE_FAMILY = 4`
 
-## Build/config observations
+`Archers/Info.plist` currently registers:
 
-- iOS deployment target: `18.0` (project-level has `18.4` in generic settings).
-- Portrait-only orientation for iPhone target.
-- Custom font configured in `Archers/Info.plist` (`Newsreader.ttf`).
-- `NSCameraUsageDescription` and `NSMicrophoneUsageDescription` are set in build settings.
+- `UIAppFonts -> Newsreader.ttf`
 
-I could not run `xcodebuild` in this environment because full Xcode is not selected (`xcode-select` points to Command Line Tools only).
+## Current technical risks / debt
 
-## Current quality and technical debt notes
+1. Mixed concurrency model:
+   - Vision runs with `DispatchQueue.async` + many `Task { @MainActor }` updates instead of structured `async/await`.
+2. Thread-safety ambiguity:
+   - Shared mutable state is updated from multiple contexts; actor isolation is not explicit.
+3. Typo/quality issues in naming and copy:
+   - `intentedUse`, `elvaluateRightArm`, `towrd`, `archary`, etc.
+4. Production UI still contains heavy debug overlays in correction view.
+5. No automated tests:
+   - no unit/UI tests for score math, mapping, or stage flow.
+6. watchOS app is not integrated yet:
+   - no data sync, no `WatchConnectivity`, no shared session commands.
 
-1. **Score accumulation bug risk**: `totalScore` is incremented inside `calcScore()` without reset each frame; values can drift over time.
-2. **`ARManager` lifecycle in views**: `CorrectionView` and `GuideCameraView` use plain stored properties (`let/var arManager = ARManager()`), which can recreate manager instances on view reload.
-3. **Concurrency style mismatch**: Vision work currently uses `DispatchQueue.global` plus `Task { @MainActor ... }`; this works, but does not yet follow the repo's `async`/`await` preference and is easy to race.
-4. **Unused/unfinished members**: `onBodyPositionUpdate` and `visionQueue` are present but not used.
-5. **Naming/typos**: `intentedUse`, `elvaluateRightArm`, and some user-facing copy typos (`towrd`, `archary`, grammar issues).
-6. **No test coverage**: no automated validation for scoring math, mapping logic, or stage transitions.
-7. **Debug overlays in production path**: marker circles are always rendered on correction screen.
+## What is ready for next feature work
 
-## What is ready for feature work
+Good foundation already exists for near-term expansion:
 
-The project already has a clear foundation to extend:
+- Stage-based onboarding shell is easy to evolve.
+- AR/Vision pipeline already produces actionable joints and distance.
+- Score components are centralized in one manager and can be refactored into testable modules.
 
-- Stage-based onboarding flow is simple to modify.
-- AR/Vision pipeline is in place and exposes many intermediate points.
-- Scoring logic is centralized in one file and can be tuned.
+Most impactful stabilization before larger features:
 
-Likely first refactor candidates before larger features:
-
-- Stabilize `ARManager` ownership with an Observation-native lifecycle pattern (without `@StateObject`).
-- Split `ARManager` into session, pose extraction, and scoring components.
-- Add a small testable scoring module independent of camera input.
-
----
-
-Prepared from direct review of all Swift source files, Info.plist, and Xcode project configuration in this repository.
+1. Refactor frame-processing into structured concurrency and clearer main-thread mutation boundaries.
+2. Separate core scoring math into a testable, pure Swift module.
+3. Add unit tests for `calcScore()` (including partial-joint and no-joint frames).
+4. Decide whether debug overlays should be gated by a debug flag.
