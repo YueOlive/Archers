@@ -378,160 +378,41 @@ extension ARManager {
 
 extension ARManager {
   func calcScore() {
-    var frameWeight: CGFloat = 0
-    var frameTotal: CGFloat = 0
-    
-    // evaluate LM
-    if let leftArmScore = evaluateLeftArm(){
-      laScore = leftArmScore
-      frameTotal += (leftArmScore * 0.4)
-      frameWeight += 0.4
-    }
-    // evaluate RM
-    if let rightArmScore = elvaluateRightArm(){
-      raScore = rightArmScore
-      frameTotal += (rightArmScore * 0.4)
-      frameWeight += 0.4
-    }
-    // evaluate B
-    if let bodyScore = evaluateBody(){
-      bScore = bodyScore
-      frameTotal += (bodyScore * 0.11)
-      frameWeight += 0.11
-    }
-    
-    // evaluate leg
-    if let legScore = evaluateLegs() {
-      self.legScore = legScore
-      frameTotal += (legScore * 0.09)
-      frameWeight += 0.09
-    }
-    
-    if frameWeight > 0 {
-      totalScore = frameTotal / frameWeight
-    } else {
-      totalScore = 0
-    }
-  }
-  
-  
-  
-  func evaluateBody() -> CGFloat?{
-    guard let rp = rootPoint,
-          let np = neckPoint else {
-      return nil
-    }
-    
-    let body = abs (np.x - rp.x)
-    let bodyScore = scoreFor(value: body, ideal: 0, tolerance: 5)
-    
-    return bodyScore
-  }
-  
-  func elvaluateRightArm() -> CGFloat?{
-    guard let rs = shoulderPoints?.right,
-          let re = rightElbowPoint,
-          let rw = rightWristPoint else {
-      return nil
-    }
-    
-    guard let elbowAngle = angle(a: rs, b: re, c: rw) else{
-      return nil
-    }
-    let elbowAngleScore = scoreFor(value: elbowAngle, ideal: 30, tolerance: 5)
-    
-    let forearmHeightDiff = abs(re.y - rw.y)
-    let forearmHeightScore = scoreFor(value: forearmHeightDiff, ideal: 20, tolerance: 3)
-    
-    return elbowAngleScore * 0.2 + forearmHeightScore * 0.8
-  }
-  
-  func evaluateLeftArm() -> CGFloat?{
-    guard let ls = shoulderPoints?.left,
-          let le = leftElbowPoint,
-          let lw = leftWristPoint else {
-      return nil
-    }
-    
-    guard let elbowAngle = angle(a: ls, b: le, c: lw) else{
-      return nil
-    }
-    
-    let elbowScore = scoreFor(value: elbowAngle, ideal: 180.0, tolerance: 5)
-    
-    let heightDiff = abs(lw.y - ls.y)
-    let heightScore = scoreFor (value: heightDiff, ideal: 0, tolerance: 0.15)
-    
-    return elbowScore * 0.8 + heightScore * 0.2
+    let score = ArcheryScorer.score(for: makeArcheryPose())
 
+    laScore = CGFloat(score.leftArm ?? 0)
+    raScore = CGFloat(score.rightArm ?? 0)
+    bScore = CGFloat(score.body ?? 0)
+    legScore = CGFloat(score.legs ?? 0)
+    totalScore = CGFloat(score.total)
+    horizontalLegDistanceIdeal = CGFloat(score.horizontalLegDistance ?? 0)
   }
-  
-  func evaluateLegs() -> CGFloat?{
-    guard let lp = leftAnklePoint,
-          let rp = rightAnklePoint else {
-      return 0.0
-    }
-    // h. distance
-    let horizontalDistance = abs(lp.x - rp.x)
-    horizontalLegDistanceIdeal = horizontalDistance
-    
-    let horizontalScore = scoreFor(
-      value: horizontalDistance,
-      ideal: 0.16,
-      tolerance: 0.06)
-    
-    // v. distance
-    let verticalDistance = abs(lp.y - rp.y)
-    let verticalScore = scoreFor(
-      value: verticalDistance,
-      ideal: 0,
-      tolerance: 0.1)
-    
-    //calc score
-    return horizontalScore * 0.8 + verticalScore * 0.2
-  }
-}
 
-extension ARManager{
-  func distance(_ a:CGPoint,_ b:CGPoint) -> CGFloat{
-    let sum = (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)
-    
-    return sqrt(sum)
+  private func makeArcheryPose() -> ArcheryPose {
+    ArcheryPose(
+      shoulders: shoulderPoints.flatMap { points in
+        guard
+          let left = makeArcheryPoint(from: points.left),
+          let right = makeArcheryPoint(from: points.right)
+        else {
+          return nil
+        }
+
+        return ShoulderPair(left: left, right: right)
+      },
+      leftWrist: makeArcheryPoint(from: leftWristPoint),
+      leftElbow: makeArcheryPoint(from: leftElbowPoint),
+      rightWrist: makeArcheryPoint(from: rightWristPoint),
+      rightElbow: makeArcheryPoint(from: rightElbowPoint),
+      neck: makeArcheryPoint(from: neckPoint),
+      leftAnkle: makeArcheryPoint(from: leftAnklePoint),
+      rightAnkle: makeArcheryPoint(from: rightAnklePoint),
+      root: makeArcheryPoint(from: rootPoint)
+    )
   }
-  
-  func scoreFor(value: CGFloat, ideal: CGFloat, tolerance: CGFloat) -> CGFloat{
-    let diff = abs(value - ideal)
-    
-    if diff >= tolerance {return 0}
-    
-    let ratio = 1 - diff/tolerance
-    return ratio * 100.0
-  }
-  
-  func scoreForDistance(
-    _ a:CGPoint,_ b:CGPoint,
-    idealDistance: CGFloat,
-    tolerance: CGFloat
-  ) -> CGFloat {
-    let d = distance(a, b)
-    return scoreFor(value: d, ideal: idealDistance, tolerance: tolerance)
-  }
-  
-  /// 计算以 b 为顶点的夹角 ∠ABC，单位：度
-  /// A - B - C
-  private func angle(a: CGPoint, b: CGPoint, c: CGPoint) -> CGFloat? {
-    let v1 = CGPoint(x: a.x - b.x, y: a.y - b.y)
-    let v2 = CGPoint(x: c.x - b.x, y: c.y - b.y)
-    
-    let len1 = sqrt(v1.x * v1.x + v1.y * v1.y)
-    let len2 = sqrt(v2.x * v2.x + v2.y * v2.y)
-    
-    guard len1 > 0.0001, len2 > 0.0001 else { return nil }
-    
-    let dot = v1.x * v2.x + v1.y * v2.y
-    let cosValue = max(-1, min(1, dot / (len1 * len2)))
-    let rad = acos(cosValue)
-    let deg = rad * 180 / .pi
-    return deg
+
+  private func makeArcheryPoint(from point: CGPoint?) -> ArcheryPoint? {
+    guard let point else { return nil }
+    return ArcheryPoint(x: Double(point.x), y: Double(point.y))
   }
 }

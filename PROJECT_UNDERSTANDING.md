@@ -6,7 +6,7 @@ Archers is a SwiftUI-based iOS app for archery posture guidance using:
 
 - `ARKit` (`ARFaceTrackingConfiguration`) for face-based distance estimation.
 - `Vision` (`VNDetectHumanBodyPoseRequest`) for body joint detection.
-- A custom scoring pipeline in `ARManager` for arm, body, and leg posture.
+- A pure Swift scoring module (`Archers/Scoring/ArcheryScorer.swift`) for arm, body, and leg posture evaluation, with `ARManager` acting as the adapter from Vision/UI state into scoring input.
 
 The repo also contains a watchOS companion target (`Archery Watch App`), currently still template-level and not connected to iOS posture/session logic.
 
@@ -14,7 +14,9 @@ The repo also contains a watchOS companion target (`Archery Watch App`), current
 
 - `Archers/`
   - `ArchersApp.swift`: iOS app entry point.
-  - `ARManager.swift`: AR session lifecycle, camera preview creation, Vision pose extraction, and scoring.
+  - `ARManager.swift`: AR session lifecycle, camera preview creation, Vision pose extraction, and adapter into the pure scoring module.
+  - `Scoring/`
+    - `ArcheryScorer.swift`: pure Swift scoring domain, geometry helpers, subscore evaluators, and weighted total aggregation.
   - `Views/`: onboarding + correction UI.
   - `Resources/`: app assets + custom font.
   - `Info.plist`: custom font registration.
@@ -22,6 +24,8 @@ The repo also contains a watchOS companion target (`Archery Watch App`), current
   - `ArcheryApp.swift`: watchOS app entry.
   - `Views/ContentView.swift`: placeholder “Hello, world!” UI.
 - `Archers.xcodeproj/`: project and target configuration.
+- `Package.swift`: SwiftPM manifest for isolated scoring tests.
+- `ArchersScoringTests/`: package tests for scoring behavior.
 - `AGENTS.md`: implementation constraints for future changes.
 
 ## AGENTS.md implementation constraints
@@ -79,9 +83,16 @@ On each `session(_:didUpdate:)` callback:
 2. `createCameraPreview(...)`:
    - Converts current AR frame `CVPixelBuffer` to oriented `UIImage`.
 3. `performVisionRequest(...)`:
-   - Runs `VNDetectHumanBodyPoseRequest` on a background queue.
-   - Extracts joints (shoulders, elbows, wrists, neck, ankles, root).
-   - Computes score.
+   - Uses an internal `VisionCoordinator` actor to manage frame sequencing and task cancellation (`latest-frame-wins`).
+   - Runs `VNDetectHumanBodyPoseRequest` and extracts all joints into a local `PosePoints` payload.
+   - Applies pose points + score on `MainActor` in a single update path.
+   - Uses monotonically increasing `frameID` to ignore stale out-of-order results.
+
+Current frame-processing state in `ARManager`:
+
+- `visionCoordinator.currentVisionTask`: currently active Vision task.
+- `visionCoordinator.nextFrameID`: issued frame sequence number.
+- `visionCoordinator.latestAppliedFrameID`: newest frame applied to observable state.
 
 ### 3) Orientation and mirroring
 
@@ -100,6 +111,16 @@ For front-camera/mirror alignment, several joints intentionally cross-map left/r
 
 ## Scoring model
 
+Scoring logic now lives in the pure Swift `ArcheryScorer` module.
+
+- Input model:
+  - `ArcheryPoint`
+  - `ShoulderPair`
+  - `ArcheryPose`
+- Output model:
+  - `ArcheryScoreBreakdown`
+- `ARManager` converts tracked `CGPoint` state into `ArcheryPose`, calls `ArcheryScorer.score(for:)`, then maps the result back into observable UI properties.
+
 Subscores:
 
 - Left arm: elbow angle + wrist/shoulder height.
@@ -114,13 +135,24 @@ Weights in `calcScore()`:
 - Body: `0.11`
 - Legs: `0.09`
 
-Base scoring is from `scoreFor(value:ideal:tolerance:)` producing `0...100`.
+Base scoring is from `ArcheryScorer.score(for:ideal:tolerance:)` producing `0...100`.
 
-Current `calcScore()` behavior (fixed):
+Current scoring behavior:
 
-- Computes `frameTotal` and `frameWeight` as local per-frame accumulators.
+- Computes per-frame weighted totals from whichever components are present.
 - Sets `totalScore = frameTotal / frameWeight` when at least one component exists.
 - Resets `totalScore = 0` when no score components are available.
+- Returns `nil` for missing component data instead of forcing a zero score.
+- Corrected legs behavior:
+  - `evaluateLegs(in:)` now returns `nil` when either ankle is missing.
+  - Missing leg data no longer consumes the `0.09` legs weight in the total.
+
+Geometry and helper math are now also pure Swift:
+
+- `distance(_:_:)`
+- `angle(a:b:c:)`
+- `score(for:ideal:tolerance:)`
+- `scoreForDistance(_:_:idealDistance:tolerance:)`
 
 ## UI implementation summary
 
@@ -166,17 +198,15 @@ From `project.pbxproj`:
 
 ## Current technical risks / debt
 
-1. Mixed concurrency model:
-   - Vision runs with `DispatchQueue.async` + many `Task { @MainActor }` updates instead of structured `async/await`.
-2. Thread-safety ambiguity:
-   - Shared mutable state is updated from multiple contexts; actor isolation is not explicit.
-3. Typo/quality issues in naming and copy:
-   - `intentedUse`, `elvaluateRightArm`, `towrd`, `archary`, etc.
-4. Production UI still contains heavy debug overlays in correction view.
-5. No automated tests:
-   - no unit/UI tests for score math, mapping, or stage flow.
-6. watchOS app is not integrated yet:
+1. Typo/quality issues in naming and copy:
+   - `intentedUse`, `towrd`, `archary`, etc.
+2. Production UI still contains heavy debug overlays in correction view.
+3. Test coverage is still partial:
+   - scoring math now has package tests, but there are still no tests for Vision-to-pose mapping, stage flow, or stale-frame suppression.
+4. watchOS app is not integrated yet:
    - no data sync, no `WatchConnectivity`, no shared session commands.
+5. Naming drift remains in app-side score state:
+   - `horizontalLegDistanceIdeal` is now storing measured horizontal ankle distance, not an ideal/reference value.
 
 ## What is ready for next feature work
 
@@ -184,11 +214,11 @@ Good foundation already exists for near-term expansion:
 
 - Stage-based onboarding shell is easy to evolve.
 - AR/Vision pipeline already produces actionable joints and distance.
-- Score components are centralized in one manager and can be refactored into testable modules.
+- Score math is now isolated into a pure Swift module and verified independently from ARKit/Vision.
 
 Most impactful stabilization before larger features:
 
-1. Refactor frame-processing into structured concurrency and clearer main-thread mutation boundaries.
-2. Separate core scoring math into a testable, pure Swift module.
-3. Add unit tests for `calcScore()` (including partial-joint and no-joint frames).
-4. Decide whether debug overlays should be gated by a debug flag.
+1. Expand scoring tests beyond aggregate totals to cover individual component edge cases.
+2. Decide whether debug overlays should be gated by a debug flag.
+3. Add tests for frame ordering and stale-frame suppression in the Vision pipeline.
+4. Rename app-side state like `horizontalLegDistanceIdeal` to match current semantics.
