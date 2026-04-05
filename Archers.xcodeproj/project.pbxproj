@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2C34BCF22F8217A000224FCD /* GestureScoring.md in Resources */ = {isa = PBXBuildFile; fileRef = 2C34BCF12F8217A000224FCD /* GestureScoring.md */; };
+		2C76C2702F6F82D60011A17B /* AGENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 2C76C26F2F6F82CF0011A17B /* AGENTS.md */; };
 		D1F9E37A2DD04F3B0081FA64 /* Archery Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D1F9E3702DD04F380081FA64 /* Archery Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -35,6 +37,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2C34BCF12F8217A000224FCD /* GestureScoring.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = GestureScoring.md; sourceTree = "<group>"; };
+		2C76C26E2F6F829D0011A17B /* PROJECT_UNDERSTANDING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PROJECT_UNDERSTANDING.md; sourceTree = "<group>"; };
+		2C76C26F2F6F82CF0011A17B /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		D1F9E35E2DD04C5A0081FA64 /* Archers.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Archers.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1F9E3702DD04F380081FA64 /* Archery Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Archery Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -86,6 +91,9 @@
 		D1F9E3552DD04C5A0081FA64 = {
 			isa = PBXGroup;
 			children = (
+				2C34BCF12F8217A000224FCD /* GestureScoring.md */,
+				2C76C26F2F6F82CF0011A17B /* AGENTS.md */,
+				2C76C26E2F6F829D0011A17B /* PROJECT_UNDERSTANDING.md */,
 				D1F9E3602DD04C5A0081FA64 /* Archers */,
 				D1F9E3712DD04F390081FA64 /* Archery Watch App */,
 				D1F9E35F2DD04C5A0081FA64 /* Products */,
@@ -158,7 +166,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1630;
-				LastUpgradeCheck = 1630;
+				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					D1F9E35D2DD04C5A0081FA64 = {
 						CreatedOnToolsVersion = 16.3;
@@ -193,6 +201,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2C34BCF22F8217A000224FCD /* GestureScoring.md in Resources */,
+				2C76C2702F6F82D60011A17B /* AGENTS.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -266,6 +276,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 9DJEBF62S3;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -289,6 +300,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -329,6 +341,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 9DJEBF62S3;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -345,6 +358,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -357,7 +371,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 332X9VQ37Z;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Archers/Info.plist;
@@ -393,7 +406,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 332X9VQ37Z;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Archers/Info.plist;
@@ -429,7 +441,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 332X9VQ37Z;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Archery;
@@ -458,7 +469,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 332X9VQ37Z;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Archery;
