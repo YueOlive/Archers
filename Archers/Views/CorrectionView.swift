@@ -271,6 +271,7 @@ extension CorrectionView{
 
       detailLine("Upper/Lower Arm Angle", leftArmAngleText)
       detailLine("Angle Score", leftArmAngleScoreText)
+      detailLine("Angle Acceptable (165-175)", leftArmAngleAcceptableText)
       detailLine("Arm vs Ground Angle", leftArmGroundAngleText)
       detailLine("Parallel to Ground", leftArmParallelText)
       detailLine("Shoulder-Wrist Height Δ", leftArmHeightDiffText)
@@ -296,6 +297,11 @@ extension CorrectionView{
   var leftArmGroundAngleText: String {
     guard let value = arManager.leftArmGroundAngle else { return "--" }
     return String(format: "%.1f°", value)
+  }
+
+  var leftArmAngleAcceptableText: String {
+    guard let value = arManager.leftArmAngleAcceptable else { return "--" }
+    return value ? "Yes" : "No"
   }
 
   var leftArmParallelText: String {

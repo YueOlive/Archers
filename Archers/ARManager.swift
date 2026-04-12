@@ -73,6 +73,7 @@ class ARManager: NSObject, ARSessionDelegate{
   var totalScore: CGFloat = 0
   var leftArmAngle: CGFloat? = nil
   var leftArmAngleScore: CGFloat? = nil
+  var leftArmAngleAcceptable: Bool? = nil
   var leftArmHeightDiff: CGFloat? = nil
   var leftArmHeightScore: CGFloat? = nil
   var leftArmGroundAngle: CGFloat? = nil
@@ -415,6 +416,7 @@ extension ARManager {
     horizontalLegDistance = score.horizontalLegDistance.map { CGFloat($0) }
     leftArmAngle = score.leftArmDetails.map { CGFloat($0.elbowAngle) }
     leftArmAngleScore = score.leftArmDetails.map { CGFloat($0.elbowAngleScore) }
+    leftArmAngleAcceptable = score.leftArmDetails?.isElbowAngleAcceptable
     leftArmHeightDiff = score.leftArmDetails.map { CGFloat($0.shoulderWristHeightDiff) }
     leftArmHeightScore = score.leftArmDetails.map { CGFloat($0.shoulderWristHeightScore) }
     leftArmGroundAngle = score.leftArmDetails.map { CGFloat($0.armGroundAngle) }

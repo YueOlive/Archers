@@ -35,6 +35,7 @@ struct ArcheryScoreBreakdown: Sendable, Equatable {
 struct LeftArmScoreDetails: Sendable, Equatable {
   var elbowAngle: Double
   var elbowAngleScore: Double
+  var isElbowAngleAcceptable: Bool
   var shoulderWristHeightDiff: Double
   var shoulderWristHeightScore: Double
   var armGroundAngle: Double
@@ -56,6 +57,9 @@ struct ArcheryScoreWeights: Sendable, Equatable {
 }
 
 enum ArcheryScorer {
+  private static let leftArmElbowAcceptableRange = 165.0 ... 175.0
+  private static let leftArmElbowFalloff = 10.0
+
   static func score(
     for pose: ArcheryPose,
     weights: ArcheryScoreWeights = .default
@@ -140,7 +144,11 @@ enum ArcheryScorer {
       return nil
     }
 
-    let elbowScore = score(for: elbowAngle, ideal: 180, tolerance: 5)
+    let elbowScore = score(
+      for: elbowAngle,
+      acceptableRange: leftArmElbowAcceptableRange,
+      toleranceOutsideRange: leftArmElbowFalloff
+    )
     let shoulderWristHeightDiff = abs(wrist.y - shoulder.y)
     let shoulderWristHeightScore = score(for: shoulderWristHeightDiff, ideal: 0, tolerance: 0.15)
     let armGroundAngle = armAngleFromHorizontal(a: shoulder, b: wrist)
@@ -148,6 +156,7 @@ enum ArcheryScorer {
     return LeftArmScoreDetails(
       elbowAngle: elbowAngle,
       elbowAngleScore: elbowScore,
+      isElbowAngleAcceptable: leftArmElbowAcceptableRange.contains(elbowAngle),
       shoulderWristHeightDiff: shoulderWristHeightDiff,
       shoulderWristHeightScore: shoulderWristHeightScore,
       armGroundAngle: armGroundAngle,
@@ -194,6 +203,32 @@ enum ArcheryScorer {
     }
 
     let ratio = 1 - diff / tolerance
+    return ratio * 100
+  }
+
+  static func score(
+    for value: Double,
+    acceptableRange: ClosedRange<Double>,
+    toleranceOutsideRange: Double
+  ) -> Double {
+    if acceptableRange.contains(value) {
+      return 100
+    }
+
+    guard toleranceOutsideRange > 0 else {
+      return 0
+    }
+
+    let distanceToRange = min(
+      abs(value - acceptableRange.lowerBound),
+      abs(value - acceptableRange.upperBound)
+    )
+
+    if distanceToRange >= toleranceOutsideRange {
+      return 0
+    }
+
+    let ratio = 1 - distanceToRange / toleranceOutsideRange
     return ratio * 100
   }
 

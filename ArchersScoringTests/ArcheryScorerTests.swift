@@ -20,13 +20,14 @@ struct ArcheryScorerTests {
 
     let score = ArcheryScorer.score(for: pose)
 
-    #expect(abs((score.leftArm ?? 0) - 100) < 0.000_001)
+    #expect(abs((score.leftArm ?? 0) - 60) < 0.000_001)
     #expect(abs((score.rightArm ?? 0) - 100) < 0.000_001)
     #expect(abs((score.body ?? 0) - 100) < 0.000_001)
     #expect(abs((score.legs ?? 0) - 100) < 0.000_001)
-    #expect(abs(score.total - 100) < 0.000_001)
+    #expect(abs(score.total - 84) < 0.000_001)
     #expect(abs((score.horizontalLegDistance ?? 0) - 0.16) < 0.000_001)
     #expect(abs((score.leftArmDetails?.elbowAngle ?? 0) - 180) < 0.000_001)
+    #expect(score.leftArmDetails?.isElbowAngleAcceptable == false)
     #expect(score.leftArmDetails?.isParallelToGround == true)
   }
 
@@ -84,11 +85,11 @@ struct ArcheryScorerTests {
 
     let score = ArcheryScorer.score(for: pose)
 
-    #expect(abs((score.leftArm ?? 0) - 100) < 0.000_001)
+    #expect(abs((score.leftArm ?? 0) - 60) < 0.000_001)
     #expect(score.rightArm == nil)
     #expect(score.body == 96)
     #expect(score.legs == nil)
-    #expect(abs(score.total - 99.137_254_901_960_79) < 0.000_001)
+    #expect(abs(score.total - 67.764_705_882_352_94) < 0.000_001)
   }
 
   @Test func customWeightsBiasTotalTowardBodyAndLegs() {
