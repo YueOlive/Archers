@@ -385,7 +385,7 @@ extension ARManager {
     bScore = CGFloat(score.body ?? 0)
     legScore = CGFloat(score.legs ?? 0)
     totalScore = CGFloat(score.total)
-    horizontalLegDistance = score.horizontalLegDistance.map(CGFloat.init)
+    horizontalLegDistance = score.horizontalLegDistance.map { CGFloat($0) }
   }
 
   private func makeArcheryPose() -> ArcheryPose {
