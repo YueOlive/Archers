@@ -186,6 +186,8 @@ struct CorrectionView: View {
         }
         .overlay{
           VStack {
+            Spacer()
+
             VStack(spacing: 8) {
               Text("Total \(String(format: "%.0f", arManager.totalScore))")
                 .font(.system(size: 34, weight: .bold))
@@ -228,7 +230,6 @@ struct CorrectionView: View {
             .padding(.horizontal, 18)
             .padding(.bottom, 18)
           }
-          .padding(.top, 18)
         }
         //end of ZStack
       }
