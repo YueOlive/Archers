@@ -71,6 +71,24 @@ class ARManager: NSObject, ARSessionDelegate{
   var bScore: CGFloat = 0
   
   var totalScore: CGFloat = 0
+
+  var armsWeight: Double = ArcheryScoreWeights.default.leftArm + ArcheryScoreWeights.default.rightArm {
+    didSet {
+      calcScore()
+    }
+  }
+
+  var bodyWeight: Double = ArcheryScoreWeights.default.body {
+    didSet {
+      calcScore()
+    }
+  }
+
+  var legsWeight: Double = ArcheryScoreWeights.default.legs {
+    didSet {
+      calcScore()
+    }
+  }
   
   var horizontalLegDistance: CGFloat? = nil
   
@@ -378,7 +396,10 @@ extension ARManager {
 
 extension ARManager {
   func calcScore() {
-    let score = ArcheryScorer.score(for: makeArcheryPose())
+    let score = ArcheryScorer.score(
+      for: makeArcheryPose(),
+      weights: makeScoreWeights()
+    )
 
     laScore = CGFloat(score.leftArm ?? 0)
     raScore = CGFloat(score.rightArm ?? 0)
@@ -414,5 +435,20 @@ extension ARManager {
   private func makeArcheryPoint(from point: CGPoint?) -> ArcheryPoint? {
     guard let point else { return nil }
     return ArcheryPoint(x: Double(point.x), y: Double(point.y))
+  }
+
+  private func makeScoreWeights() -> ArcheryScoreWeights {
+    ArcheryScoreWeights(
+      leftArm: armsWeight / 2,
+      rightArm: armsWeight / 2,
+      body: bodyWeight,
+      legs: legsWeight
+    )
+  }
+
+  func resetScoreWeights() {
+    armsWeight = ArcheryScoreWeights.default.leftArm + ArcheryScoreWeights.default.rightArm
+    bodyWeight = ArcheryScoreWeights.default.body
+    legsWeight = ArcheryScoreWeights.default.legs
   }
 }

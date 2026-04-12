@@ -31,13 +31,25 @@ struct ArcheryScoreBreakdown: Sendable, Equatable {
   var horizontalLegDistance: Double?
 }
 
-enum ArcheryScorer {
-  private static let leftArmWeight = 0.4
-  private static let rightArmWeight = 0.4
-  private static let bodyWeight = 0.11
-  private static let legsWeight = 0.09
+struct ArcheryScoreWeights: Sendable, Equatable {
+  var leftArm: Double
+  var rightArm: Double
+  var body: Double
+  var legs: Double
 
-  static func score(for pose: ArcheryPose) -> ArcheryScoreBreakdown {
+  static let `default` = ArcheryScoreWeights(
+    leftArm: 0.4,
+    rightArm: 0.4,
+    body: 0.11,
+    legs: 0.09
+  )
+}
+
+enum ArcheryScorer {
+  static func score(
+    for pose: ArcheryPose,
+    weights: ArcheryScoreWeights = .default
+  ) -> ArcheryScoreBreakdown {
     let leftArm = evaluateLeftArm(in: pose)
     let rightArm = evaluateRightArm(in: pose)
     let body = evaluateBody(in: pose)
@@ -47,23 +59,23 @@ enum ArcheryScorer {
     var weight = 0.0
 
     if let leftArm {
-      total += leftArm * leftArmWeight
-      weight += leftArmWeight
+      total += leftArm * max(0, weights.leftArm)
+      weight += max(0, weights.leftArm)
     }
 
     if let rightArm {
-      total += rightArm * rightArmWeight
-      weight += rightArmWeight
+      total += rightArm * max(0, weights.rightArm)
+      weight += max(0, weights.rightArm)
     }
 
     if let body {
-      total += body * bodyWeight
-      weight += bodyWeight
+      total += body * max(0, weights.body)
+      weight += max(0, weights.body)
     }
 
     if let legs {
-      total += legs * legsWeight
-      weight += legsWeight
+      total += legs * max(0, weights.legs)
+      weight += max(0, weights.legs)
     }
 
     return ArcheryScoreBreakdown(

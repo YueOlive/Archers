@@ -185,16 +185,50 @@ struct CorrectionView: View {
           }
         }
         .overlay{
-          VStack{
-            //2do - get gesutre score
-//            Text("\(String(format: "%.0f", arManager.score))")
-//              .font(.system(size: 60))
-//              .fontWeight(.bold)
-            
-            Text(horizontalLegDistanceText)
-              .font(.system(size: 60))
-              .fontWeight(.bold)
+          VStack {
+            VStack(spacing: 8) {
+              Text("Total \(String(format: "%.0f", arManager.totalScore))")
+                .font(.system(size: 34, weight: .bold))
+                .foregroundStyle(.white)
+
+              HStack(spacing: 8) {
+                metricChip(title: "L Arm", value: arManager.laScore)
+                metricChip(title: "R Arm", value: arManager.raScore)
+                metricChip(title: "Body", value: arManager.bScore)
+                metricChip(title: "Legs", value: arManager.legScore)
+              }
+            }
+
+            Spacer()
+
+            VStack(spacing: 10) {
+              makeWeightControl(title: "Arms Weight", value: armsWeightBinding, range: 0...1.2)
+              makeWeightControl(title: "Body Weight", value: bodyWeightBinding, range: 0...0.6)
+              makeWeightControl(title: "Legs Weight", value: legsWeightBinding, range: 0...0.6)
+
+              HStack {
+                Text("Leg Distance \(horizontalLegDistanceText)")
+                  .font(.system(size: 15, weight: .semibold))
+                  .foregroundStyle(.white.opacity(0.9))
+
+                Spacer()
+
+                Button("Reset Weights") {
+                  arManager.resetScoreWeights()
+                }
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(.black)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(.white.opacity(0.95), in: Capsule())
+              }
+            }
+            .padding(12)
+            .background(.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 18)
+            .padding(.bottom, 18)
           }
+          .padding(.top, 18)
         }
         //end of ZStack
       }
@@ -209,6 +243,18 @@ struct CorrectionView: View {
 }
 
 extension CorrectionView{
+  var armsWeightBinding: Binding<Double> {
+    Binding(get: { arManager.armsWeight }, set: { arManager.armsWeight = $0 })
+  }
+
+  var bodyWeightBinding: Binding<Double> {
+    Binding(get: { arManager.bodyWeight }, set: { arManager.bodyWeight = $0 })
+  }
+
+  var legsWeightBinding: Binding<Double> {
+    Binding(get: { arManager.legsWeight }, set: { arManager.legsWeight = $0 })
+  }
+
   var horizontalLegDistanceText: String {
     guard let legDistance = arManager.horizontalLegDistance else { return "--" }
     return String(format: "%.2f", legDistance)
@@ -267,6 +313,38 @@ extension CorrectionView{
       Capsule().fill(Color.cyan.opacity(0.5))
     )
     
+  }
+
+  func metricChip(title: String, value: CGFloat) -> some View {
+    VStack(spacing: 2) {
+      Text(title)
+        .font(.system(size: 11, weight: .semibold))
+      Text(String(format: "%.0f", value))
+        .font(.system(size: 16, weight: .bold))
+    }
+    .foregroundStyle(.white)
+    .padding(.horizontal, 8)
+    .padding(.vertical, 6)
+    .background(.black.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
+  }
+
+  func makeWeightControl(
+    title: String,
+    value: Binding<Double>,
+    range: ClosedRange<Double>
+  ) -> some View {
+    VStack(alignment: .leading, spacing: 4) {
+      HStack {
+        Text(title)
+        Spacer()
+        Text(String(format: "%.2f", value.wrappedValue))
+      }
+      .font(.system(size: 14, weight: .semibold))
+      .foregroundStyle(.white)
+
+      Slider(value: value, in: range)
+        .tint(.white)
+    }
   }
   
   func mapPoint(screenSize: CGSize, imageSize: CGSize, pt: CGPoint) -> CGPoint{

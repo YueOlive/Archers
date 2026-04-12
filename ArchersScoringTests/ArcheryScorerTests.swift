@@ -87,4 +87,34 @@ struct ArcheryScorerTests {
     #expect(score.legs == nil)
     #expect(abs(score.total - 99.137_254_901_960_79) < 0.000_001)
   }
+
+  @Test func customWeightsBiasTotalTowardBodyAndLegs() {
+    let pose = ArcheryPose(
+      shoulders: ShoulderPair(
+        left: ArcheryPoint(x: 0, y: 0),
+        right: ArcheryPoint(x: 0, y: 0)
+      ),
+      leftWrist: ArcheryPoint(x: 1.8, y: 0),
+      leftElbow: ArcheryPoint(x: 1, y: 0),
+      rightWrist: ArcheryPoint(x: 0, y: 0),
+      rightElbow: ArcheryPoint(x: 0, y: 20),
+      neck: ArcheryPoint(x: 0, y: 0),
+      leftAnkle: ArcheryPoint(x: 0, y: 0),
+      rightAnkle: ArcheryPoint(x: 0.16, y: 0),
+      root: ArcheryPoint(x: 0, y: 0)
+    )
+
+    let defaultScore = ArcheryScorer.score(for: pose)
+    let bodyLegBiased = ArcheryScorer.score(
+      for: pose,
+      weights: ArcheryScoreWeights(
+        leftArm: 0.1,
+        rightArm: 0.1,
+        body: 0.4,
+        legs: 0.4
+      )
+    )
+
+    #expect(defaultScore.total < bodyLegBiased.total)
+  }
 }
