@@ -38,7 +38,13 @@ The scorer currently uses hard-coded ideals, tolerances, and weights:
   - body `0.11`
   - legs `0.09`
 
-The current UI only exposes a debug-like leg distance value, which is not enough to judge whether tuning is correct.
+The current UI only exposes a debug-like horizontal leg distance value from `ARManager.horizontalLegDistance`, which is not enough to judge whether tuning is correct.
+
+Recent implementation update:
+
+- Renamed app-side state from `horizontalLegDistanceIdeal` to `horizontalLegDistance` to match measured semantics.
+- The value is now optional (`CGFloat?`) and preserves missing-joint state.
+- The current UI shows `--` when ankle data is unavailable, instead of forcing `0.00`.
 
 ## Recommendation
 
@@ -302,7 +308,7 @@ This makes it much easier to tell whether the issue is posture or scoring calibr
   - Total score is too coarse for calibration.
 - Do not expose unlabeled numeric controls.
   - Users need plain-language labels tied to body posture.
-- Do not bind tuning directly to debug names like `laScore` or `bScore`.
+- Do not bind tuning directly to debug/internal names like `laScore`, `bScore`, or `horizontalLegDistance`.
   - The UI should use clear, stable labels such as `Left Arm`, `Body`, and `Leg Stance`.
 
 ## Final Recommendation

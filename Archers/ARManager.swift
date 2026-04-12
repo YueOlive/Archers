@@ -72,7 +72,7 @@ class ARManager: NSObject, ARSessionDelegate{
   
   var totalScore: CGFloat = 0
   
-  var horizontalLegDistanceIdeal: CGFloat = 0
+  var horizontalLegDistance: CGFloat? = nil
   
   var estimatedDistance: CGFloat? = nil
   var mirrorFrontPreview: Bool = false
@@ -385,7 +385,7 @@ extension ARManager {
     bScore = CGFloat(score.body ?? 0)
     legScore = CGFloat(score.legs ?? 0)
     totalScore = CGFloat(score.total)
-    horizontalLegDistanceIdeal = CGFloat(score.horizontalLegDistance ?? 0)
+    horizontalLegDistance = score.horizontalLegDistance.map(CGFloat.init)
   }
 
   private func makeArcheryPose() -> ArcheryPose {

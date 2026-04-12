@@ -191,7 +191,7 @@ struct CorrectionView: View {
 //              .font(.system(size: 60))
 //              .fontWeight(.bold)
             
-            Text("\(String(format: "%.2f", arManager.horizontalLegDistanceIdeal))")
+            Text(horizontalLegDistanceText)
               .font(.system(size: 60))
               .fontWeight(.bold)
           }
@@ -209,6 +209,11 @@ struct CorrectionView: View {
 }
 
 extension CorrectionView{
+  var horizontalLegDistanceText: String {
+    guard let legDistance = arManager.horizontalLegDistance else { return "--" }
+    return String(format: "%.2f", legDistance)
+  }
+
   var humanDistance: String {
     if let d = arManager.estimatedDistance {
       return String(format: "%.2f", d)
