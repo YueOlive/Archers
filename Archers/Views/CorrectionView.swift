@@ -199,6 +199,8 @@ struct CorrectionView: View {
                 metricChip(title: "Body", value: arManager.bScore)
                 metricChip(title: "Legs", value: arManager.legScore)
               }
+
+              leftArmDetailsCard
             }
 
             Spacer()
@@ -259,6 +261,56 @@ extension CorrectionView{
   var horizontalLegDistanceText: String {
     guard let legDistance = arManager.horizontalLegDistance else { return "--" }
     return String(format: "%.2f", legDistance)
+  }
+
+  var leftArmDetailsCard: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text("Left Arm Details")
+        .font(.system(size: 14, weight: .bold))
+        .foregroundStyle(.white)
+
+      detailLine("Upper/Lower Arm Angle", leftArmAngleText)
+      detailLine("Angle Score", leftArmAngleScoreText)
+      detailLine("Arm vs Ground Angle", leftArmGroundAngleText)
+      detailLine("Parallel to Ground", leftArmParallelText)
+      detailLine("Shoulder-Wrist Height Δ", leftArmHeightDiffText)
+      detailLine("Level Score", leftArmHeightScoreText)
+    }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 10))
+    .padding(.horizontal, 18)
+  }
+
+  var leftArmAngleText: String {
+    guard let value = arManager.leftArmAngle else { return "--" }
+    return String(format: "%.1f°", value)
+  }
+
+  var leftArmAngleScoreText: String {
+    guard let value = arManager.leftArmAngleScore else { return "--" }
+    return String(format: "%.0f / 100", value)
+  }
+
+  var leftArmGroundAngleText: String {
+    guard let value = arManager.leftArmGroundAngle else { return "--" }
+    return String(format: "%.1f°", value)
+  }
+
+  var leftArmParallelText: String {
+    guard let value = arManager.leftArmIsParallelToGround else { return "--" }
+    return value ? "Yes" : "No"
+  }
+
+  var leftArmHeightDiffText: String {
+    guard let value = arManager.leftArmHeightDiff else { return "--" }
+    return String(format: "%.3f", value)
+  }
+
+  var leftArmHeightScoreText: String {
+    guard let value = arManager.leftArmHeightScore else { return "--" }
+    return String(format: "%.0f / 100", value)
   }
 
   var humanDistance: String {
@@ -327,6 +379,18 @@ extension CorrectionView{
     .padding(.horizontal, 10)
     .padding(.vertical, 7)
     .background(.black.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
+  }
+
+  func detailLine(_ title: String, _ value: String) -> some View {
+    HStack(spacing: 8) {
+      Text(title)
+        .font(.system(size: 13, weight: .medium))
+        .foregroundStyle(.white.opacity(0.8))
+      Spacer()
+      Text(value)
+        .font(.system(size: 14, weight: .semibold))
+        .foregroundStyle(.white)
+    }
   }
 
   func makeWeightControl(

@@ -29,6 +29,16 @@ struct ArcheryScoreBreakdown: Sendable, Equatable {
   var legs: Double?
   var total: Double
   var horizontalLegDistance: Double?
+  var leftArmDetails: LeftArmScoreDetails?
+}
+
+struct LeftArmScoreDetails: Sendable, Equatable {
+  var elbowAngle: Double
+  var elbowAngleScore: Double
+  var shoulderWristHeightDiff: Double
+  var shoulderWristHeightScore: Double
+  var armGroundAngle: Double
+  var isParallelToGround: Bool
 }
 
 struct ArcheryScoreWeights: Sendable, Equatable {
@@ -50,7 +60,8 @@ enum ArcheryScorer {
     for pose: ArcheryPose,
     weights: ArcheryScoreWeights = .default
   ) -> ArcheryScoreBreakdown {
-    let leftArm = evaluateLeftArm(in: pose)
+    let leftArmDetails = evaluateLeftArmDetails(in: pose)
+    let leftArm = leftArmDetails.map { $0.elbowAngleScore * 0.8 + $0.shoulderWristHeightScore * 0.2 }
     let rightArm = evaluateRightArm(in: pose)
     let body = evaluateBody(in: pose)
     let legs = evaluateLegs(in: pose)
@@ -84,7 +95,8 @@ enum ArcheryScorer {
       body: body,
       legs: legs,
       total: weight > 0 ? total / weight : 0,
-      horizontalLegDistance: horizontalLegDistance(in: pose)
+      horizontalLegDistance: horizontalLegDistance(in: pose),
+      leftArmDetails: leftArmDetails
     )
   }
 
@@ -115,6 +127,10 @@ enum ArcheryScorer {
   }
 
   static func evaluateLeftArm(in pose: ArcheryPose) -> Double? {
+    evaluateLeftArmDetails(in: pose).map { $0.elbowAngleScore * 0.8 + $0.shoulderWristHeightScore * 0.2 }
+  }
+
+  static func evaluateLeftArmDetails(in pose: ArcheryPose) -> LeftArmScoreDetails? {
     guard
       let shoulder = pose.shoulders?.left,
       let elbow = pose.leftElbow,
@@ -125,10 +141,18 @@ enum ArcheryScorer {
     }
 
     let elbowScore = score(for: elbowAngle, ideal: 180, tolerance: 5)
-    let heightDiff = abs(wrist.y - shoulder.y)
-    let heightScore = score(for: heightDiff, ideal: 0, tolerance: 0.15)
+    let shoulderWristHeightDiff = abs(wrist.y - shoulder.y)
+    let shoulderWristHeightScore = score(for: shoulderWristHeightDiff, ideal: 0, tolerance: 0.15)
+    let armGroundAngle = armAngleFromHorizontal(a: shoulder, b: wrist)
 
-    return elbowScore * 0.8 + heightScore * 0.2
+    return LeftArmScoreDetails(
+      elbowAngle: elbowAngle,
+      elbowAngleScore: elbowScore,
+      shoulderWristHeightDiff: shoulderWristHeightDiff,
+      shoulderWristHeightScore: shoulderWristHeightScore,
+      armGroundAngle: armGroundAngle,
+      isParallelToGround: armGroundAngle <= 10
+    )
   }
 
   static func evaluateLegs(in pose: ArcheryPose) -> Double? {
@@ -196,5 +220,12 @@ enum ArcheryScorer {
     let cosValue = max(-1, min(1, dot / (len1 * len2)))
     let radians = acos(cosValue)
     return radians * 180 / .pi
+  }
+
+  static func armAngleFromHorizontal(a: ArcheryPoint, b: ArcheryPoint) -> Double {
+    let dx = abs(b.x - a.x)
+    let dy = abs(b.y - a.y)
+    guard dx > 0.0001 || dy > 0.0001 else { return 90 }
+    return atan2(dy, dx) * 180 / .pi
   }
 }

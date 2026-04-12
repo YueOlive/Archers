@@ -71,6 +71,12 @@ class ARManager: NSObject, ARSessionDelegate{
   var bScore: CGFloat = 0
   
   var totalScore: CGFloat = 0
+  var leftArmAngle: CGFloat? = nil
+  var leftArmAngleScore: CGFloat? = nil
+  var leftArmHeightDiff: CGFloat? = nil
+  var leftArmHeightScore: CGFloat? = nil
+  var leftArmGroundAngle: CGFloat? = nil
+  var leftArmIsParallelToGround: Bool? = nil
 
   var armsWeight: Double = ArcheryScoreWeights.default.leftArm + ArcheryScoreWeights.default.rightArm {
     didSet {
@@ -407,6 +413,12 @@ extension ARManager {
     legScore = CGFloat(score.legs ?? 0)
     totalScore = CGFloat(score.total)
     horizontalLegDistance = score.horizontalLegDistance.map { CGFloat($0) }
+    leftArmAngle = score.leftArmDetails.map { CGFloat($0.elbowAngle) }
+    leftArmAngleScore = score.leftArmDetails.map { CGFloat($0.elbowAngleScore) }
+    leftArmHeightDiff = score.leftArmDetails.map { CGFloat($0.shoulderWristHeightDiff) }
+    leftArmHeightScore = score.leftArmDetails.map { CGFloat($0.shoulderWristHeightScore) }
+    leftArmGroundAngle = score.leftArmDetails.map { CGFloat($0.armGroundAngle) }
+    leftArmIsParallelToGround = score.leftArmDetails?.isParallelToGround
   }
 
   private func makeArcheryPose() -> ArcheryPose {

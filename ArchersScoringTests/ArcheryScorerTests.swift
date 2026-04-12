@@ -26,6 +26,8 @@ struct ArcheryScorerTests {
     #expect(abs((score.legs ?? 0) - 100) < 0.000_001)
     #expect(abs(score.total - 100) < 0.000_001)
     #expect(abs((score.horizontalLegDistance ?? 0) - 0.16) < 0.000_001)
+    #expect(abs((score.leftArmDetails?.elbowAngle ?? 0) - 180) < 0.000_001)
+    #expect(score.leftArmDetails?.isParallelToGround == true)
   }
 
   @Test func missingLegJointExcludesLegWeight() {
@@ -61,6 +63,7 @@ struct ArcheryScorerTests {
     #expect(score.body == nil)
     #expect(score.legs == nil)
     #expect(score.total == 0)
+    #expect(score.leftArmDetails == nil)
   }
 
   @Test func partialPoseUsesOnlyAvailableWeights() {
