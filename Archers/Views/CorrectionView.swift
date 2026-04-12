@@ -271,7 +271,7 @@ extension CorrectionView{
 
       detailLine("Upper/Lower Arm Angle", leftArmAngleText)
       detailLine("Angle Score", leftArmAngleScoreText)
-      detailLine("Angle Acceptable (165-175)", leftArmAngleAcceptableText)
+      detailLine("Angle Acceptable (168-175)", leftArmAngleAcceptableText)
       detailLine("Arm vs Ground Angle", leftArmGroundAngleText)
       detailLine("Parallel to Ground", leftArmParallelText)
       detailLine("Shoulder-Wrist Height Δ", leftArmHeightDiffText)

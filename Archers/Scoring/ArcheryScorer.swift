@@ -57,7 +57,7 @@ struct ArcheryScoreWeights: Sendable, Equatable {
 }
 
 enum ArcheryScorer {
-  private static let leftArmElbowAcceptableRange = 165.0 ... 175.0
+  private static let leftArmElbowAcceptableRange = 168.0 ... 175.0
   private static let leftArmElbowFalloff = 10.0
 
   static func score(
