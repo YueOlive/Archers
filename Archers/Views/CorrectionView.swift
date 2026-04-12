@@ -319,13 +319,13 @@ extension CorrectionView{
   func metricChip(title: String, value: CGFloat) -> some View {
     VStack(spacing: 2) {
       Text(title)
-        .font(.system(size: 11, weight: .semibold))
+        .font(.system(size: 13, weight: .semibold))
       Text(String(format: "%.0f", value))
-        .font(.system(size: 16, weight: .bold))
+        .font(.system(size: 24, weight: .bold))
     }
     .foregroundStyle(.white)
-    .padding(.horizontal, 8)
-    .padding(.vertical, 6)
+    .padding(.horizontal, 10)
+    .padding(.vertical, 7)
     .background(.black.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
   }
 
