@@ -37,8 +37,10 @@ struct ArcheryScoreBreakdown: Sendable, Equatable {
 struct LegsScoreDetails: Sendable, Equatable {
   var horizontalDistance: Double
   var horizontalScore: Double
+  var isHorizontalAcceptable: Bool
   var verticalDistance: Double
   var verticalScore: Double
+  var isVerticalAcceptable: Bool
 }
 
 struct LeftArmScoreDetails: Sendable, Equatable {
@@ -81,6 +83,10 @@ enum ArcheryScorer {
   private static let rightArmElbowFalloff = 10.0
   private static let rightArmForearmHeightAcceptableRange = 0.02 ... 0.04
   private static let rightArmForearmHeightFalloff = 0.03
+  private static let legsHorizontalAcceptableRange = 0.15 ... 0.17
+  private static let legsHorizontalFalloff = 0.05
+  private static let legsVerticalAcceptableRange = 0.0 ... 0.01
+  private static let legsVerticalFalloff = 0.09
 
   static func score(
     for pose: ArcheryPose,
@@ -219,16 +225,26 @@ enum ArcheryScorer {
     }
 
     let horizontalDistance = abs(leftAnkle.x - rightAnkle.x)
-    let horizontalScore = score(for: horizontalDistance, ideal: 0.16, tolerance: 0.06)
+    let horizontalScore = score(
+      for: horizontalDistance,
+      acceptableRange: legsHorizontalAcceptableRange,
+      toleranceOutsideRange: legsHorizontalFalloff
+    )
 
     let verticalDistance = abs(leftAnkle.y - rightAnkle.y)
-    let verticalScore = score(for: verticalDistance, ideal: 0, tolerance: 0.1)
+    let verticalScore = score(
+      for: verticalDistance,
+      acceptableRange: legsVerticalAcceptableRange,
+      toleranceOutsideRange: legsVerticalFalloff
+    )
 
     return LegsScoreDetails(
       horizontalDistance: horizontalDistance,
       horizontalScore: horizontalScore,
+      isHorizontalAcceptable: legsHorizontalAcceptableRange.contains(horizontalDistance),
       verticalDistance: verticalDistance,
-      verticalScore: verticalScore
+      verticalScore: verticalScore,
+      isVerticalAcceptable: legsVerticalAcceptableRange.contains(verticalDistance)
     )
   }
 

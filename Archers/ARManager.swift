@@ -86,8 +86,10 @@ class ARManager: NSObject, ARSessionDelegate{
   var rightArmForearmHeightAcceptable: Bool? = nil
   var legsHorizontalDistance: CGFloat? = nil
   var legsHorizontalScore: CGFloat? = nil
+  var legsHorizontalAcceptable: Bool? = nil
   var legsVerticalDistance: CGFloat? = nil
   var legsVerticalScore: CGFloat? = nil
+  var legsVerticalAcceptable: Bool? = nil
 
   var armsWeight: Double = ArcheryScoreWeights.default.leftArm + ArcheryScoreWeights.default.rightArm {
     didSet {
@@ -439,8 +441,10 @@ extension ARManager {
     rightArmForearmHeightAcceptable = score.rightArmDetails?.isForearmHeightAcceptable
     legsHorizontalDistance = score.legsDetails.map { CGFloat($0.horizontalDistance) }
     legsHorizontalScore = score.legsDetails.map { CGFloat($0.horizontalScore) }
+    legsHorizontalAcceptable = score.legsDetails?.isHorizontalAcceptable
     legsVerticalDistance = score.legsDetails.map { CGFloat($0.verticalDistance) }
     legsVerticalScore = score.legsDetails.map { CGFloat($0.verticalScore) }
+    legsVerticalAcceptable = score.legsDetails?.isVerticalAcceptable
   }
 
   private func makeArcheryPose() -> ArcheryPose {

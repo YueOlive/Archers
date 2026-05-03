@@ -270,9 +270,11 @@ extension CorrectionView{
         .foregroundStyle(.white)
 
       detailLine("Ankle Horizontal Δ", legsHorizontalDistanceText)
-      detailLine("Horizontal Score (ideal 0.16, tol 0.06)", legsHorizontalScoreText)
+      detailLine("Horizontal Score", legsHorizontalScoreText)
+      detailLine("Horizontal Acceptable (0.15-0.17)", legsHorizontalAcceptableText)
       detailLine("Ankle Vertical Δ", legsVerticalDistanceText)
-      detailLine("Vertical Score (ideal 0, tol 0.1)", legsVerticalScoreText)
+      detailLine("Vertical Score", legsVerticalScoreText)
+      detailLine("Vertical Acceptable (0-0.01)", legsVerticalAcceptableText)
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 10)
@@ -299,6 +301,16 @@ extension CorrectionView{
   var legsVerticalScoreText: String {
     guard let value = arManager.legsVerticalScore else { return "--" }
     return String(format: "%.0f / 100", value)
+  }
+
+  var legsHorizontalAcceptableText: String {
+    guard let value = arManager.legsHorizontalAcceptable else { return "--" }
+    return value ? "Yes" : "No"
+  }
+
+  var legsVerticalAcceptableText: String {
+    guard let value = arManager.legsVerticalAcceptable else { return "--" }
+    return value ? "Yes" : "No"
   }
 
   var humanDistance: String {
