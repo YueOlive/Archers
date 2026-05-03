@@ -31,6 +31,14 @@ struct ArcheryScoreBreakdown: Sendable, Equatable {
   var horizontalLegDistance: Double?
   var leftArmDetails: LeftArmScoreDetails?
   var rightArmDetails: RightArmScoreDetails?
+  var legsDetails: LegsScoreDetails?
+}
+
+struct LegsScoreDetails: Sendable, Equatable {
+  var horizontalDistance: Double
+  var horizontalScore: Double
+  var verticalDistance: Double
+  var verticalScore: Double
 }
 
 struct LeftArmScoreDetails: Sendable, Equatable {
@@ -83,7 +91,8 @@ enum ArcheryScorer {
     let rightArmDetails = evaluateRightArmDetails(in: pose)
     let rightArm = rightArmDetails.map { $0.elbowAngleScore * 0.2 + $0.forearmHeightScore * 0.8 }
     let body = evaluateBody(in: pose)
-    let legs = evaluateLegs(in: pose)
+    let legsDetails = evaluateLegsDetails(in: pose)
+    let legs = legsDetails.map { $0.horizontalScore * 0.8 + $0.verticalScore * 0.2 }
 
     var total = 0.0
     var weight = 0.0
@@ -116,7 +125,8 @@ enum ArcheryScorer {
       total: weight > 0 ? total / weight : 0,
       horizontalLegDistance: horizontalLegDistance(in: pose),
       leftArmDetails: leftArmDetails,
-      rightArmDetails: rightArmDetails
+      rightArmDetails: rightArmDetails,
+      legsDetails: legsDetails
     )
   }
 
@@ -200,6 +210,10 @@ enum ArcheryScorer {
   }
 
   static func evaluateLegs(in pose: ArcheryPose) -> Double? {
+    evaluateLegsDetails(in: pose).map { $0.horizontalScore * 0.8 + $0.verticalScore * 0.2 }
+  }
+
+  static func evaluateLegsDetails(in pose: ArcheryPose) -> LegsScoreDetails? {
     guard let leftAnkle = pose.leftAnkle, let rightAnkle = pose.rightAnkle else {
       return nil
     }
@@ -210,7 +224,12 @@ enum ArcheryScorer {
     let verticalDistance = abs(leftAnkle.y - rightAnkle.y)
     let verticalScore = score(for: verticalDistance, ideal: 0, tolerance: 0.1)
 
-    return horizontalScore * 0.8 + verticalScore * 0.2
+    return LegsScoreDetails(
+      horizontalDistance: horizontalDistance,
+      horizontalScore: horizontalScore,
+      verticalDistance: verticalDistance,
+      verticalScore: verticalScore
+    )
   }
 
   static func horizontalLegDistance(in pose: ArcheryPose) -> Double? {

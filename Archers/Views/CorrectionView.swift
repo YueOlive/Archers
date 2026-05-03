@@ -200,7 +200,7 @@ struct CorrectionView: View {
                 metricChip(title: "Legs", value: arManager.legScore)
               }
 
-              rightArmDetailsCard
+              legsDetailsCard
             }
 
             Spacer()
@@ -263,18 +263,16 @@ extension CorrectionView{
     return String(format: "%.2f", legDistance)
   }
 
-  var rightArmDetailsCard: some View {
+  var legsDetailsCard: some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text("Right Arm Details")
+      Text("Legs Details")
         .font(.system(size: 14, weight: .bold))
         .foregroundStyle(.white)
 
-      detailLine("Elbow Angle", rightArmAngleText)
-      detailLine("Angle Score", rightArmAngleScoreText)
-      detailLine("Angle Acceptable (15-22)", rightArmAngleAcceptableText)
-      detailLine("Forearm Height Δ", rightArmForearmHeightDiffText)
-      detailLine("Forearm Score", rightArmForearmHeightScoreText)
-      detailLine("Forearm Acceptable (0.02-0.04)", rightArmForearmHeightAcceptableText)
+      detailLine("Ankle Horizontal Δ", legsHorizontalDistanceText)
+      detailLine("Horizontal Score (ideal 0.16, tol 0.06)", legsHorizontalScoreText)
+      detailLine("Ankle Vertical Δ", legsVerticalDistanceText)
+      detailLine("Vertical Score (ideal 0, tol 0.1)", legsVerticalScoreText)
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 10)
@@ -283,34 +281,24 @@ extension CorrectionView{
     .padding(.horizontal, 18)
   }
 
-  var rightArmAngleText: String {
-    guard let value = arManager.rightArmAngle else { return "--" }
-    return String(format: "%.1f°", value)
-  }
-
-  var rightArmAngleScoreText: String {
-    guard let value = arManager.rightArmAngleScore else { return "--" }
-    return String(format: "%.0f / 100", value)
-  }
-
-  var rightArmAngleAcceptableText: String {
-    guard let value = arManager.rightArmAngleAcceptable else { return "--" }
-    return value ? "Yes" : "No"
-  }
-
-  var rightArmForearmHeightDiffText: String {
-    guard let value = arManager.rightArmForearmHeightDiff else { return "--" }
+  var legsHorizontalDistanceText: String {
+    guard let value = arManager.legsHorizontalDistance else { return "--" }
     return String(format: "%.3f", value)
   }
 
-  var rightArmForearmHeightScoreText: String {
-    guard let value = arManager.rightArmForearmHeightScore else { return "--" }
+  var legsHorizontalScoreText: String {
+    guard let value = arManager.legsHorizontalScore else { return "--" }
     return String(format: "%.0f / 100", value)
   }
 
-  var rightArmForearmHeightAcceptableText: String {
-    guard let value = arManager.rightArmForearmHeightAcceptable else { return "--" }
-    return value ? "Yes" : "No"
+  var legsVerticalDistanceText: String {
+    guard let value = arManager.legsVerticalDistance else { return "--" }
+    return String(format: "%.3f", value)
+  }
+
+  var legsVerticalScoreText: String {
+    guard let value = arManager.legsVerticalScore else { return "--" }
+    return String(format: "%.0f / 100", value)
   }
 
   var humanDistance: String {
