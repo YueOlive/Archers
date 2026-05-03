@@ -270,7 +270,8 @@ extension CorrectionView{
         .foregroundStyle(.white)
 
       detailLine("Elbow Angle", rightArmAngleText)
-      detailLine("Angle Score (ideal 30°, tol 5)", rightArmAngleScoreText)
+      detailLine("Angle Score", rightArmAngleScoreText)
+      detailLine("Angle Acceptable (15-22)", rightArmAngleAcceptableText)
       detailLine("Forearm Height Δ", rightArmForearmHeightDiffText)
       detailLine("Forearm Score (ideal 20, tol 3)", rightArmForearmHeightScoreText)
     }
@@ -289,6 +290,11 @@ extension CorrectionView{
   var rightArmAngleScoreText: String {
     guard let value = arManager.rightArmAngleScore else { return "--" }
     return String(format: "%.0f / 100", value)
+  }
+
+  var rightArmAngleAcceptableText: String {
+    guard let value = arManager.rightArmAngleAcceptable else { return "--" }
+    return value ? "Yes" : "No"
   }
 
   var rightArmForearmHeightDiffText: String {

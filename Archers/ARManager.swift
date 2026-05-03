@@ -80,6 +80,7 @@ class ARManager: NSObject, ARSessionDelegate{
   var leftArmIsParallelToGround: Bool? = nil
   var rightArmAngle: CGFloat? = nil
   var rightArmAngleScore: CGFloat? = nil
+  var rightArmAngleAcceptable: Bool? = nil
   var rightArmForearmHeightDiff: CGFloat? = nil
   var rightArmForearmHeightScore: CGFloat? = nil
 
@@ -427,6 +428,7 @@ extension ARManager {
     leftArmIsParallelToGround = score.leftArmDetails?.isParallelToGround
     rightArmAngle = score.rightArmDetails.map { CGFloat($0.elbowAngle) }
     rightArmAngleScore = score.rightArmDetails.map { CGFloat($0.elbowAngleScore) }
+    rightArmAngleAcceptable = score.rightArmDetails?.isElbowAngleAcceptable
     rightArmForearmHeightDiff = score.rightArmDetails.map { CGFloat($0.forearmHeightDiff) }
     rightArmForearmHeightScore = score.rightArmDetails.map { CGFloat($0.forearmHeightScore) }
   }
