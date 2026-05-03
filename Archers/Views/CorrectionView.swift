@@ -271,7 +271,7 @@ extension CorrectionView{
 
       detailLine("Ankle Horizontal Δ", legsHorizontalDistanceText)
       detailLine("Horizontal Score", legsHorizontalScoreText)
-      detailLine("Horizontal Acceptable (0.15-0.17)", legsHorizontalAcceptableText)
+      detailLine("Horizontal Acceptable (0.16-0.20)", legsHorizontalAcceptableText)
       detailLine("Ankle Vertical Δ", legsVerticalDistanceText)
       detailLine("Vertical Score", legsVerticalScoreText)
       detailLine("Vertical Acceptable (0-0.01)", legsVerticalAcceptableText)

@@ -83,7 +83,7 @@ enum ArcheryScorer {
   private static let rightArmElbowFalloff = 10.0
   private static let rightArmForearmHeightAcceptableRange = 0.02 ... 0.04
   private static let rightArmForearmHeightFalloff = 0.03
-  private static let legsHorizontalAcceptableRange = 0.15 ... 0.17
+  private static let legsHorizontalAcceptableRange = 0.16 ... 0.20
   private static let legsHorizontalFalloff = 0.05
   private static let legsVerticalAcceptableRange = 0.0 ... 0.01
   private static let legsVerticalFalloff = 0.09
