@@ -146,7 +146,7 @@ enum ArcheryScorer {
       toleranceOutsideRange: rightArmElbowFalloff
     )
     let forearmHeightDiff = abs(elbow.y - wrist.y)
-    let forearmHeightScore = score(for: forearmHeightDiff, ideal: 20, tolerance: 3)
+    let forearmHeightScore = score(for: forearmHeightDiff, ideal: 0.15, tolerance: 0.05)
 
     return RightArmScoreDetails(
       elbowAngle: elbowAngle,

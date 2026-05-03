@@ -273,7 +273,7 @@ extension CorrectionView{
       detailLine("Angle Score", rightArmAngleScoreText)
       detailLine("Angle Acceptable (15-22)", rightArmAngleAcceptableText)
       detailLine("Forearm Height Δ", rightArmForearmHeightDiffText)
-      detailLine("Forearm Score (ideal 20, tol 3)", rightArmForearmHeightScoreText)
+      detailLine("Forearm Score (ideal 0.15, tol 0.05)", rightArmForearmHeightScoreText)
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 10)

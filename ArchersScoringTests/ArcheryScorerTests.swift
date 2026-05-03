@@ -21,10 +21,10 @@ struct ArcheryScorerTests {
     let score = ArcheryScorer.score(for: pose)
 
     #expect(abs((score.leftArm ?? 0) - 60) < 0.000_001)
-    #expect(abs((score.rightArm ?? 0) - 84) < 0.000_001)
+    #expect(abs((score.rightArm ?? 0) - 4) < 0.000_001)
     #expect(abs((score.body ?? 0) - 100) < 0.000_001)
     #expect(abs((score.legs ?? 0) - 100) < 0.000_001)
-    #expect(abs(score.total - 77.6) < 0.000_001)
+    #expect(abs(score.total - 45.6) < 0.000_001)
     #expect(abs((score.horizontalLegDistance ?? 0) - 0.16) < 0.000_001)
     #expect(abs((score.leftArmDetails?.elbowAngle ?? 0) - 180) < 0.000_001)
     #expect(score.leftArmDetails?.isElbowAngleAcceptable == false)
