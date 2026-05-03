@@ -376,7 +376,7 @@ extension CorrectionView{
         .foregroundStyle(.white.opacity(0.8))
       Spacer()
       Text(value)
-        .font(.system(size: 14, weight: .semibold))
+        .font(.system(size: 20, weight: .bold))
         .foregroundStyle(.white)
     }
   }
