@@ -49,6 +49,7 @@ struct RightArmScoreDetails: Sendable, Equatable {
   var isElbowAngleAcceptable: Bool
   var forearmHeightDiff: Double
   var forearmHeightScore: Double
+  var isForearmHeightAcceptable: Bool
 }
 
 struct ArcheryScoreWeights: Sendable, Equatable {
@@ -70,6 +71,8 @@ enum ArcheryScorer {
   private static let leftArmElbowFalloff = 10.0
   private static let rightArmElbowAcceptableRange = 15.0 ... 22.0
   private static let rightArmElbowFalloff = 10.0
+  private static let rightArmForearmHeightAcceptableRange = 0.02 ... 0.04
+  private static let rightArmForearmHeightFalloff = 0.03
 
   static func score(
     for pose: ArcheryPose,
@@ -146,14 +149,19 @@ enum ArcheryScorer {
       toleranceOutsideRange: rightArmElbowFalloff
     )
     let forearmHeightDiff = abs(elbow.y - wrist.y)
-    let forearmHeightScore = score(for: forearmHeightDiff, ideal: 0.15, tolerance: 0.05)
+    let forearmHeightScore = score(
+      for: forearmHeightDiff,
+      acceptableRange: rightArmForearmHeightAcceptableRange,
+      toleranceOutsideRange: rightArmForearmHeightFalloff
+    )
 
     return RightArmScoreDetails(
       elbowAngle: elbowAngle,
       elbowAngleScore: elbowAngleScore,
       isElbowAngleAcceptable: rightArmElbowAcceptableRange.contains(elbowAngle),
       forearmHeightDiff: forearmHeightDiff,
-      forearmHeightScore: forearmHeightScore
+      forearmHeightScore: forearmHeightScore,
+      isForearmHeightAcceptable: rightArmForearmHeightAcceptableRange.contains(forearmHeightDiff)
     )
   }
 

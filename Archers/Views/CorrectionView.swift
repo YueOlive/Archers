@@ -273,7 +273,8 @@ extension CorrectionView{
       detailLine("Angle Score", rightArmAngleScoreText)
       detailLine("Angle Acceptable (15-22)", rightArmAngleAcceptableText)
       detailLine("Forearm Height Δ", rightArmForearmHeightDiffText)
-      detailLine("Forearm Score (ideal 0.15, tol 0.05)", rightArmForearmHeightScoreText)
+      detailLine("Forearm Score", rightArmForearmHeightScoreText)
+      detailLine("Forearm Acceptable (0.02-0.04)", rightArmForearmHeightAcceptableText)
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 10)
@@ -305,6 +306,11 @@ extension CorrectionView{
   var rightArmForearmHeightScoreText: String {
     guard let value = arManager.rightArmForearmHeightScore else { return "--" }
     return String(format: "%.0f / 100", value)
+  }
+
+  var rightArmForearmHeightAcceptableText: String {
+    guard let value = arManager.rightArmForearmHeightAcceptable else { return "--" }
+    return value ? "Yes" : "No"
   }
 
   var humanDistance: String {
