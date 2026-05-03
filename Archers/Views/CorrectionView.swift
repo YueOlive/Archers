@@ -200,7 +200,7 @@ struct CorrectionView: View {
                 metricChip(title: "Legs", value: arManager.legScore)
               }
 
-              leftArmDetailsCard
+              rightArmDetailsCard
             }
 
             Spacer()
@@ -263,19 +263,16 @@ extension CorrectionView{
     return String(format: "%.2f", legDistance)
   }
 
-  var leftArmDetailsCard: some View {
+  var rightArmDetailsCard: some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text("Left Arm Details")
+      Text("Right Arm Details")
         .font(.system(size: 14, weight: .bold))
         .foregroundStyle(.white)
 
-      detailLine("Upper/Lower Arm Angle", leftArmAngleText)
-      detailLine("Angle Score", leftArmAngleScoreText)
-      detailLine("Angle Acceptable (168-175)", leftArmAngleAcceptableText)
-      detailLine("Arm vs Ground Angle", leftArmGroundAngleText)
-      detailLine("Parallel to Ground", leftArmParallelText)
-      detailLine("Shoulder-Wrist Height Δ", leftArmHeightDiffText)
-      detailLine("Level Score", leftArmHeightScoreText)
+      detailLine("Elbow Angle", rightArmAngleText)
+      detailLine("Angle Score (ideal 30°, tol 5)", rightArmAngleScoreText)
+      detailLine("Forearm Height Δ", rightArmForearmHeightDiffText)
+      detailLine("Forearm Score (ideal 20, tol 3)", rightArmForearmHeightScoreText)
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 10)
@@ -284,38 +281,23 @@ extension CorrectionView{
     .padding(.horizontal, 18)
   }
 
-  var leftArmAngleText: String {
-    guard let value = arManager.leftArmAngle else { return "--" }
+  var rightArmAngleText: String {
+    guard let value = arManager.rightArmAngle else { return "--" }
     return String(format: "%.1f°", value)
   }
 
-  var leftArmAngleScoreText: String {
-    guard let value = arManager.leftArmAngleScore else { return "--" }
+  var rightArmAngleScoreText: String {
+    guard let value = arManager.rightArmAngleScore else { return "--" }
     return String(format: "%.0f / 100", value)
   }
 
-  var leftArmGroundAngleText: String {
-    guard let value = arManager.leftArmGroundAngle else { return "--" }
-    return String(format: "%.1f°", value)
-  }
-
-  var leftArmAngleAcceptableText: String {
-    guard let value = arManager.leftArmAngleAcceptable else { return "--" }
-    return value ? "Yes" : "No"
-  }
-
-  var leftArmParallelText: String {
-    guard let value = arManager.leftArmIsParallelToGround else { return "--" }
-    return value ? "Yes" : "No"
-  }
-
-  var leftArmHeightDiffText: String {
-    guard let value = arManager.leftArmHeightDiff else { return "--" }
+  var rightArmForearmHeightDiffText: String {
+    guard let value = arManager.rightArmForearmHeightDiff else { return "--" }
     return String(format: "%.3f", value)
   }
 
-  var leftArmHeightScoreText: String {
-    guard let value = arManager.leftArmHeightScore else { return "--" }
+  var rightArmForearmHeightScoreText: String {
+    guard let value = arManager.rightArmForearmHeightScore else { return "--" }
     return String(format: "%.0f / 100", value)
   }
 
